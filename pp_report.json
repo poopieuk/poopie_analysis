@@ -1,0 +1,180 @@
+{
+  "metadata": {
+    "version": "2.1",
+    "author": "Alisha Ahamed",
+    "last_updated": "2025-10-07"
+  },
+  "thresholds": { "high": 10.0, "moderate": 1.0 },
+  "bacteria": {
+    "Prevotella": {
+      "overview": "Prevotella is the dominant bacterium in your sample. This genus thrives on dietary fibre and plant-based foods such as whole grains, fruit and legumes. Prevotella species are known for their ability to ferment complex carbohydrates into SCFAs, particularly acetate and propionate, which nourish the gut lining and support metabolic health. High Prevotella levels are typical in people with high-fibre diets. However, in some cases of imbalance or excessive simple-carbohydrate intake, certain Prevotella species have been linked with inflammation. Keeping a balanced, fibre-rich diet helps ensure Prevotella remains beneficial.",
+      "role": "They break down complex carbohydrates...",
+      "high_abundance": "High Prevotella indicates...",
+      "moderate_abundance": "Balanced Prevotella levels reflect steady fibre intake...",
+      "low_abundance": "Low Prevotella suggests limited fibre..."
+    },
+    "Faecalibacterium": {
+      "overview": "Faecalibacterium prausnitzii is one of the most important beneficial bacteria...",
+      "role": "It produces butyrate, an anti-inflammatory SCFA...",
+      "high_abundance": "High levels indicate excellent butyrate production...",
+      "moderate_abundance": "Moderate levels are stable...",
+      "low_abundance": "Low levels are linked with inflammation..."
+    },
+"Rikenellaceae_RC9_gut_group": {
+  "overview": "This bacterial group belongs to the Rikenellaceae family, often associated with balanced digestion and efficient breakdown of plant material. It helps produce beneficial SCFAs that stabilise the gut environment.",
+  "role": "Rikenellaceae_RC9_gut_group supports fibre metabolism and cross-feeding within the microbial community. It contributes to a diverse and stable ecosystem, helping other beneficial bacteria to flourish.",
+  "high_abundance": "High abundance reflects strong fibre digestion and robust gut metabolic activity — a positive sign of microbial stability.",
+  "moderate_abundance": "A moderate level suggests healthy microbial balance and ongoing fibre fermentation. Maintaining dietary variety will help sustain this balance.",
+  "low_abundance": "Low levels may indicate reduced fibre intake or lower microbial diversity. A greater variety of plant-based foods can help increase this group’s presence."
+},
+
+    "Ruminococcus": {
+  "overview": "Ruminococcus species are core members of a healthy gut ecosystem. They specialise in breaking down tough plant fibres and resistant starches that most other microbes cannot digest.",
+  "role": "These bacteria help produce beneficial short-chain fatty acids such as butyrate, which strengthens the gut barrier and nourishes colon cells. They are key to keeping the digestive system smooth and regular.",
+  "high_abundance": "High levels of Ruminococcus reflect a diet rich in complex plant fibres and excellent digestive resilience. This pattern supports strong gut health and regular bowel habits.",
+  "moderate_abundance": "A moderate level suggests balanced fibre intake and healthy microbial fermentation. Keep including a wide variety of plant-based foods to maintain this stability.",
+  "low_abundance": "Low Ruminococcus may indicate reduced fibre diversity in the diet. Introducing more legumes, root vegetables, and resistant starch can help support its growth."
+},
+
+    "Bacteroides": {
+  "overview": "Bacteroides are versatile bacteria that play a central role in maintaining digestive balance. They are highly efficient at breaking down complex carbohydrates, proteins, and fats.",
+  "role": "They produce key short-chain fatty acids that support colon health and energy metabolism. Bacteroides also help train the immune system and keep potential pathogens in check.",
+  "high_abundance": "A high abundance indicates strong digestive activity and a well-fed microbiome. However, excessive dominance may occur with high-fat or low-fibre diets.",
+  "moderate_abundance": "Balanced levels of Bacteroides reflect a stable gut ecosystem, capable of handling a variety of foods comfortably.",
+  "low_abundance": "Low Bacteroides may suggest a reduced ability to digest complex foods efficiently. Increasing plant fibre can help encourage a healthier balance."
+},
+
+    "Treponema": {
+  "overview": "Certain non-pathogenic Treponema species are natural residents of the gut, particularly in people consuming traditional plant-rich diets. They are experts at breaking down complex plant polysaccharides.",
+  "role": "These bacteria contribute to fibre fermentation and help sustain microbial diversity. Their presence is often associated with traditional diets high in root vegetables, fruits, and unprocessed grains.",
+  "high_abundance": "A high presence suggests a fibre-rich, traditional diet and excellent fermentation capacity. This supports overall microbial resilience.",
+  "moderate_abundance": "Moderate levels are a healthy sign, indicating ongoing microbial diversity and good digestion.",
+  "low_abundance": "Low Treponema may simply reflect a modern diet with fewer fibrous foods. Gradual increases in natural plant fibre can encourage their growth."
+},
+
+    "Catenibacterium": {
+  "overview": "Catenibacterium is a helpful gut bacterium involved in fermenting carbohydrates and maintaining optimal gut pH. It contributes to the production of short-chain fatty acids like butyrate, which support gut wall integrity.",
+  "role": "By breaking down plant fibres and proteins, Catenibacterium helps regulate digestion and supports beneficial bacterial balance. It plays a part in stabilising energy metabolism within the gut ecosystem.",
+  "high_abundance": "High levels suggest active fermentation and good digestive resilience. This supports a healthy gut environment and microbial diversity.",
+  "moderate_abundance": "A balanced presence contributes to steady gut metabolism and efficient nutrient processing.",
+  "low_abundance": "Low Catenibacterium may reflect low dietary fibre or limited microbial variety. Increasing natural fibre and reducing processed foods can encourage growth."
+},
+
+    "Alloprevotella": {
+  "overview": "Alloprevotella is a natural resident of a balanced gut and plays a major role in fermenting dietary fibre to produce beneficial short-chain fatty acids.",
+  "role": "It supports the maintenance of a healthy gut environment by producing acetate and propionate — compounds that nourish beneficial bacteria and help regulate inflammation.",
+  "high_abundance": "A high level of Alloprevotella indicates strong fibre fermentation and stable microbial balance, often linked to a plant-rich diet.",
+  "moderate_abundance": "Balanced levels show healthy microbial diversity and good digestive stability.",
+  "low_abundance": "Low Alloprevotella suggests a lack of dietary fibre or microbial imbalance. Increasing prebiotic foods can encourage its return."
+},
+
+    "Phascolarctobacterium": {
+  "overview": "Phascolarctobacterium is a beneficial bacterium that converts fermentation products from other microbes into propionate — an important short-chain fatty acid that supports energy metabolism and mood regulation.",
+  "role": "It connects different parts of your microbiome by using succinate produced by other species. This cooperative relationship helps maintain microbial stability and supports the gut–brain axis.",
+  "high_abundance": "High Phascolarctobacterium levels reflect strong microbial cooperation and efficient energy recycling — signs of a well-balanced gut ecosystem.",
+  "moderate_abundance": "Moderate levels are healthy and indicate good balance between fermentation and energy production.",
+  "low_abundance": "Low levels may be linked with reduced microbial communication and stress-related changes in gut function. Increasing dietary fibre and stress-reducing practices can help restore balance."
+},
+
+    "Subdoligranulum": {
+  "overview": "Subdoligranulum is a key butyrate-producing bacterium that helps maintain a calm, resilient gut. It is often associated with anti-inflammatory balance and overall digestive comfort.",
+  "role": "It produces butyrate, an important SCFA that nourishes your colon cells, supports immune health, and strengthens the gut barrier. High Subdoligranulum levels are seen in stable, fibre-rich microbiomes.",
+  "high_abundance": "A high level of Subdoligranulum suggests excellent fibre fermentation and strong gut barrier function. This is typically linked with calm digestion and reduced inflammation.",
+  "moderate_abundance": "Moderate levels are common and healthy. Maintaining a variety of plant fibres and adequate hydration can help it thrive.",
+  "low_abundance": "Low levels may reduce butyrate production and contribute to gut sensitivity. Increasing resistant starch and fermented foods can gently support its growth."
+},
+
+    "Alistipes": {
+  "overview": "Alistipes species are versatile bacteria that contribute to amino-acid and bile-acid metabolism, playing a dual role in digestion and immune modulation.",
+  "role": "They help process dietary proteins and fats while assisting in inflammation control. Balanced Alistipes supports both digestion and metabolic flexibility.",
+  "high_abundance": "High Alistipes can reflect high-protein diets or transient gut stress. Pairing proteins with fibre can help moderate levels.",
+  "moderate_abundance": "A moderate level supports digestive versatility and immune tolerance.",
+  "low_abundance": "Low Alistipes may reduce microbial diversity slightly but is usually not concerning if other beneficial species are strong."
+},
+
+    "Parabacteroides": {
+  "overview": "Parabacteroides species are versatile microbes that help regulate immune function and maintain a balanced gut environment. They produce important metabolites that communicate with your immune system.",
+  "role": "They are involved in modulating inflammation and protecting the gut lining. A steady presence of Parabacteroides supports metabolic health and nutrient absorption.",
+  "high_abundance": "High levels suggest active immune–microbe dialogue and healthy microbial adaptation, often seen in balanced, fibre-rich diets.",
+  "moderate_abundance": "A moderate level indicates equilibrium — a good sign of digestive stability and metabolic balance.",
+  "low_abundance": "Low Parabacteroides may accompany low microbial diversity or limited fibre intake. Including prebiotic foods can help re-establish balance."
+},
+
+    "Collinsella": {
+  "overview": "Collinsella is a naturally occurring gut bacterium that helps process complex carbohydrates and cholesterol. It plays a part in maintaining metabolic balance and digestive efficiency.",
+  "role": "Balanced levels of Collinsella support healthy lipid metabolism and energy production. It interacts closely with other beneficial bacteria to fine-tune gut chemistry.",
+  "high_abundance": "High Collinsella may appear with diets high in refined carbohydrates. While not necessarily harmful, it may indicate an opportunity to balance fibre and fat intake.",
+  "moderate_abundance": "A moderate presence contributes to metabolic balance and smooth digestion.",
+  "low_abundance": "Low Collinsella is common in high-fibre diets and may reflect strong microbial diversity. There is usually no concern at low levels."
+},
+
+
+    "Streptococcus": {
+      "overview": "Some Streptococcus species are commensal gut bacteria, while others can be opportunistic.",
+      "role": "Commensal strains help start carbohydrate fermentation in the small intestine.",
+      "high_abundance": "High Streptococcus may indicate upper gut fermentation or sugar overconsumption.",
+      "moderate_abundance": "Balanced levels are normal in healthy microbiomes.",
+      "low_abundance": "Low Streptococcus is typical and healthy."
+    },
+
+    "Coprococcus": {
+  "overview": "Coprococcus is a key butyrate-producing bacterium associated with positive mood, stable digestion, and gut–brain balance.",
+  "role": "It helps produce short-chain fatty acids, particularly butyrate, which nourish intestinal cells and promote serotonin-related wellbeing.",
+  "high_abundance": "High Coprococcus suggests excellent microbial cooperation and strong gut–brain connection — a marker of emotional and digestive resilience.",
+  "moderate_abundance": "Balanced levels indicate steady fermentation and good microbial harmony.",
+  "low_abundance": "Low levels may relate to stress, poor sleep, or low fibre intake. Supporting mental and dietary balance helps encourage its return."
+},
+
+    "Roseburia": {
+  "overview": "Roseburia is one of the most valuable beneficial genera in the human gut. It produces butyrate, a compound that keeps your gut lining healthy and inflammation low.",
+  "role": "This genus supports digestion, stabilises the immune system, and helps regulate energy metabolism. It is a reliable marker of gut wellness and dietary fibre intake.",
+  "high_abundance": "High Roseburia indicates excellent gut function and fibre fermentation — a hallmark of a balanced, anti-inflammatory microbiome.",
+  "moderate_abundance": "Balanced Roseburia levels show consistent dietary fibre intake and a stable gut community.",
+  "low_abundance": "Low Roseburia can occur with low fibre intake or after antibiotic use. Gradual reintroduction of natural fibres helps restore its numbers."
+},
+"Agathobacter": {
+  "overview": "Agathobacter is a beneficial bacterium closely related to Eubacterium and Roseburia. It is a strong producer of butyrate, a short-chain fatty acid essential for maintaining gut wall integrity and reducing inflammation.",
+  "role": "Agathobacter helps to protect the intestinal lining and promotes smooth, regular digestion. It contributes to a balanced gut ecosystem and supports energy production in colon cells.",
+  "high_abundance": "High levels indicate strong butyrate production and excellent gut resilience. This is a marker of healthy fibre intake and stable microbial metabolism.",
+  "moderate_abundance": "Moderate Agathobacter levels suggest healthy digestive function and balanced fibre fermentation. Continue including diverse plant fibres to sustain this balance.",
+  "low_abundance": "Low Agathobacter may reflect reduced fibre or prebiotic intake. Reintroducing natural plant-based foods can help support its growth and improve gut comfort."
+},
+
+"Phascolarctobacterium": {
+  "overview": "Phascolarctobacterium is a cooperative bacterium that transforms fermentation by-products from other microbes into propionate — a key short-chain fatty acid that supports metabolism and mood balance.",
+  "role": "It strengthens microbial communication and helps regulate the gut–brain axis. Its activity supports energy balance and emotional wellbeing.",
+  "high_abundance": "High levels reflect strong microbial cooperation and efficient nutrient recycling — a hallmark of a resilient microbiome.",
+  "moderate_abundance": "A balanced presence supports steady energy metabolism and overall gut stability.",
+  "low_abundance": "Low levels may occur with stress, low fibre intake, or disrupted microbial networks. Gently increasing fibre can help restore balance."
+},
+"Sutterella": {
+  "overview": "Sutterella is a normal member of the gut microbiota found in many healthy individuals. It contributes to gut immune balance and helps regulate how the body interacts with food antigens.",
+  "role": "It participates in maintaining a balanced mucosal immune response, particularly in the small intestine. Balanced Sutterella levels support smooth digestion and tolerance to foods.",
+  "high_abundance": "High Sutterella may indicate an adaptive immune response or higher microbial turnover. It is usually benign but should be balanced with fibre intake.",
+  "moderate_abundance": "Moderate levels are typical in healthy guts and reflect balanced microbial ecology.",
+  "low_abundance": "Low levels are common and not concerning. Supporting diversity through plant fibres helps maintain gut resilience."
+},
+"Succinivibrio": {
+  "overview": "Succinivibrio is a bacterium involved in breaking down simple carbohydrates and producing succinate, a key intermediate in microbial energy production.",
+  "role": "It helps coordinate energy flow between different bacterial groups, supporting smooth digestion and balanced microbial metabolism.",
+  "high_abundance": "A high level may reflect active carbohydrate fermentation, often linked to higher intake of starches or sugars.",
+  "moderate_abundance": "Moderate Succinivibrio levels are part of normal microbial activity and indicate healthy digestive function.",
+  "low_abundance": "Low levels suggest limited carbohydrate fermentation — often due to low starch intake or high-fat diets."
+},
+
+"Holdemanella": {
+  "overview": "Holdemanella is a naturally occurring bacterium involved in breaking down amino acids and carbohydrates to create beneficial metabolites that support energy balance and immunity.",
+  "role": "It contributes to maintaining the gut’s metabolic flexibility — allowing your microbiome to adapt to different foods while producing helpful by-products such as short-chain fatty acids.",
+  "high_abundance": "High levels can indicate active amino-acid fermentation. When balanced with fibre, this supports efficient digestion and metabolic health.",
+  "moderate_abundance": "Moderate Holdemanella levels are common in healthy microbiomes and reflect good digestive adaptability.",
+  "low_abundance": "Low levels are typical and not concerning. Maintaining a fibre-rich diet and avoiding over-processed protein sources helps preserve balance."
+}
+},
+
+  "summary_templates": {
+    "balanced": "Your microbiome shows strong resilience...",
+    "moderate": "Your microbiome is balanced overall...",
+    "support_needed": "Your microbiome would benefit from more support..."
+  }
+}
+
