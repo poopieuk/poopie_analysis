@@ -45,7 +45,9 @@ option_list <- list(
   make_option(c("--maxEE_F"), type = "double", default = 2, help = "maxEE for forward reads"),
   make_option(c("--maxEE_R"), type = "double", default = 5, help = "maxEE for reverse reads"),
   make_option(c("--min_abundance"), type = "integer", default = 10L, help = "Minimum total abundance per ASV to retain"),
-  make_option(c("--top_genera"), type = "integer", default = 10L, help = "Top N genera per sample for JSON")
+  make_option(c("--top_genera"), type = "integer", default = 10L, help = "Top N genera per sample for JSON"),
+  make_option(c("--sample_id"), type = "character", help = "Sample identifier")
+
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
@@ -73,24 +75,61 @@ writeLines(capture.output(sessionInfo()), file.path(logs_dir, "sessionInfo.txt")
 train_fp   <- normalizePath(opt$taxonomy_train, mustWork = TRUE)
 species_fp <- normalizePath(opt$taxonomy_species, mustWork = TRUE)
 
-# -------- Locate FASTQs --------
+# -------- Locate FASTQs (generalized pattern, no hardcoding) --------
 path <- in_dir
-fnFs <- sort(list.files(path, pattern = "_R1\\.fastq(\\.gz)?$", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern = "_R2\\.fastq(\\.gz)?$", full.names = TRUE))
 
-if (length(fnFs) == 0 || length(fnRs) == 0) fail("No FASTQ pairs found matching *_R1_001.fastq.gz and *_R2_001.fastq.gz")
-if (length(fnFs) != length(fnRs)) info("WARNING: forward/reverse file counts differ; attempting to proceed by name matching.")
+# Automatically detect all R1/R2 pairs
+fnFs <- sort(list.files(path, pattern = "_R1_001\\.fastq(\\.gz)?$", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern = "_R2_001\\.fastq(\\.gz)?$", full.names = TRUE))
+
+# -------- Optional: Restrict to one sample if --sample_id provided --------
+if (!is.null(opt$sample_id)) {
+  info("Filtering FASTQ files for sample_id: ", opt$sample_id)
+  
+  # Keep only files that match the sample_id string
+  fnFs <- fnFs[grepl(opt$sample_id, basename(fnFs))]
+  fnRs <- fnRs[grepl(opt$sample_id, basename(fnRs))]
+  
+  if (length(fnFs) == 0 || length(fnRs) == 0) {
+    fail(paste("No FASTQ files found matching sample_id:", opt$sample_id))
+  }
+  
+  # Restrict sample names as well
+  baseF <- sub("_R1_001\\.fastq(\\.gz)?$", "", basename(fnFs))
+  #sample.names <- gsub("_S\\d+_L\\d+", "", baseF)
+  sample.names <- baseF
+  
+  info("Processing single sample: ", paste(sample.names, collapse = ", "))
+}
+
+
+if (length(fnFs) == 0 || length(fnRs) == 0)
+  fail("No FASTQ pairs found matching *_R1_001.fastq.gz and *_R2_001.fastq.gz")
+
+if (length(fnFs) != length(fnRs))
+  info("WARNING: forward/reverse file counts differ; attempting to proceed by name matching.")
 
 # Ensure pairs by basename prefix (up to _R1/_R2)
-baseF <- sub("_R1\\.fastq(\\.gz)?$", "", basename(fnFs))
-baseR <- sub("_R2\\.fastq(\\.gz)?$", "", basename(fnRs))
+baseF <- sub("_R1_001\\.fastq(\\.gz)?$", "", basename(fnFs))
+baseR <- sub("_R2_001\\.fastq(\\.gz)?$", "", basename(fnRs))
 common <- intersect(baseF, baseR)
 fnFs <- fnFs[baseF %in% common]
 fnRs <- fnRs[baseR %in% common]
 
-if (length(fnFs) == 0) fail("No matching forward/reverse pairs after name harmonization.")
+if (length(fnFs) == 0)
+  fail("No matching forward/reverse pairs after name harmonization.")
 
-sample.names <- common
+# Derive clean sample names directly from FASTQ filenames
+sample.names <- gsub("_R[12]_001\\.fastq(\\.gz)?$", "", basename(fnFs))
+#sample.names <- gsub("_S\\d+_L\\d+", "", sample.names)  # remove S##/L##
+sample.names <- gsub("_001$", "", sample.names)
+sample.names <- basename(sample.names)
+
+info("Detected sample names: ", paste(sample.names, collapse = ", "))
+
+# Assign sample names to files
+names(fnFs) <- sample.names
+names(fnRs) <- sample.names
 
 # -------- Count reads & discard mismatched pairs by read count --------
 getReads <- function(f) R.utils::countLines(f) / 4
@@ -115,6 +154,12 @@ safe_dir(filt_path)
 filtFs <- file.path(filt_path, paste0(sample.names, "_F_filt.fastq.gz"))
 filtRs <- file.path(filt_path, paste0(sample.names, "_R_filt.fastq.gz"))
 
+# Assign sample names so DADA2 keeps them
+names(fnFs) <- sample.names
+names(fnRs) <- sample.names
+names(filtFs) <- sample.names
+names(filtRs) <- sample.names
+
 info("Filtering & trimming (", length(sample.names), " samples)…")
 
 out_filt <- dada2::filterAndTrim(
@@ -128,8 +173,15 @@ out_filt <- dada2::filterAndTrim(
 
 write.csv(as.data.frame(out_filt), file.path(tables_dir, "filtering_summary.csv"), row.names = TRUE)
 
-# Remove samples with zero reads after filtering
-nonzero <- (out_filt[,2] > 0 & out_filt[,4] > 0)
+# ---- Handle both single and multiple samples ----
+if (ncol(out_filt) >= 4) {
+  nonzero <- (out_filt[,2] > 0 & out_filt[,4] > 0)
+} else if (ncol(out_filt) == 2) {
+  nonzero <- (out_filt[,2] > 0)
+} else {
+  fail("Unexpected structure returned by filterAndTrim().")
+}
+
 if (!all(nonzero)) {
   dropped <- sample.names[!nonzero]
   info("WARNING: ", sum(!nonzero), " samples dropped after filtering (zero reads)")
@@ -141,17 +193,10 @@ if (length(sample.names) == 0) fail("No samples left after filtering.")
 
 # -------- Learn errors --------
 info("Learning error models…")
-if (file.exists(file.path(rds_dir, "errF.rds"))) {
-  errF <- readRDS(file.path(rds_dir, "errF.rds"))
-  errR <- readRDS(file.path(rds_dir, "errR.rds"))
-} else {
-  errF <- dada2::learnErrors(filtFs, multithread = opt$threads, nbases = 1e6)
-  errR <- dada2::learnErrors(filtRs, multithread = opt$threads, nbases = 1e6)
-  saveRDS(errF, file.path(rds_dir, "errF.rds"))
-  saveRDS(errR, file.path(rds_dir, "errR.rds"))
-}
-
-
+errF <- dada2::learnErrors(filtFs, multithread = opt$threads, nbases = 1e6)
+errR <- dada2::learnErrors(filtRs, multithread = opt$threads, nbases = 1e6)
+saveRDS(errF, file.path(rds_dir, "errF.rds"))
+saveRDS(errR, file.path(rds_dir, "errR.rds"))
 
 # -------- Denoise & merge --------
 info("Denoising (dada) & merging pairs…")
@@ -160,46 +205,92 @@ dadaRs <- dada2::dada(filtRs, err = errR, multithread = opt$threads)
 mergers <- dada2::mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose = TRUE)
 
 seqtab <- dada2::makeSequenceTable(mergers)
+# Maintain sample names in sequence table
+# After removeBimeraDenovo
 seqtab.nochim <- dada2::removeBimeraDenovo(seqtab, method = "consensus", multithread = opt$threads)
+
+# Ensure rows are samples
+rownames(seqtab.nochim) <- sample.names
+
+# Filter ASVs by abundance
+min_abund <- as.integer(opt$min_abundance)
+seqtab.filtered <- seqtab.nochim[, colSums(seqtab.nochim) > min_abund, drop = FALSE]
+if (ncol(seqtab.filtered) == 0) fail("All ASVs filtered out by abundance threshold.")
+
+
+
+# Assign proper rownames (samples)
+rownames(seqtab.nochim) <- names(filtFs)
+if (is.null(rownames(seqtab.nochim))) rownames(seqtab.nochim) <- sample.names
 
 # -------- Filter ASVs by total abundance --------
 min_abund <- as.integer(opt$min_abundance)
 seqtab.filtered <- seqtab.nochim[, colSums(seqtab.nochim) > min_abund, drop = FALSE]
 if (ncol(seqtab.filtered) == 0) fail("All ASVs filtered out by abundance threshold.")
 
-# -------- Taxonomy assignment --------
-info("Assigning taxonomy (SILVA)…")
-tax <- dada2::assignTaxonomy(seqtab.filtered, train_fp, multithread = opt$threads)
-tax <- dada2::addSpecies(tax, species_fp)
+# ============================================================
+# === TAXONOMY ASSIGNMENT (SILVA) ============================
+# ============================================================
+
+info("Assigning taxonomy (SILVA)...")
+
+# use normalized paths (train_fp/species_fp) you already computed
+taxa <- assignTaxonomy(seqtab.filtered, train_fp, multithread = opt$threads)
+taxa <- tryCatch({
+  addSpecies(taxa, species_fp)
+}, error = function(e) {
+  warning(paste("addSpecies() failed:", e$message))
+  taxa
+})
+
+info("✅ Taxonomy assignment completed successfully.")
 
 # -------- Build phyloseq object --------
-otu_mat <- t(seqtab.filtered) # taxa rows, samples cols
-sampledata <- data.frame(
-  Sample = colnames(otu_mat),
-  Group  = rep("unknown", ncol(otu_mat)),
-  row.names = colnames(otu_mat),
-  stringsAsFactors = FALSE
+info("Building Phyloseq object...")
+
+# Confirm dimensions and rownames
+info("DEBUG: seqtab.filtered dim = ", paste(dim(seqtab.filtered), collapse = " x "))
+info("DEBUG: rownames(seqtab.filtered) (samples): ", paste(rownames(seqtab.filtered), collapse = ", "))
+
+# Ensure the rownames are sample names (not sequences)
+# If DADA2 lost names, reassign from our detected sample list
+if (is.null(rownames(seqtab.filtered)) || all(grepl("^[ACGT]+$", rownames(seqtab.filtered)))) {
+  rownames(seqtab.filtered) <- sample.names
+  info("✅ Assigned sample names to seqtab.filtered rownames.")
+} else {
+  info("✅ Sample names already present in seqtab.filtered.")
+}
+
+# Create phyloseq object with ASVs as taxa, samples as rownames
+ps <- phyloseq(
+  otu_table(seqtab.filtered, taxa_are_rows = FALSE),
+  tax_table(as.matrix(taxa)),
+  sample_data(data.frame(SampleID = rownames(seqtab.filtered), row.names = rownames(seqtab.filtered)))
 )
 
-ps <- phyloseq::phyloseq(
-  phyloseq::otu_table(otu_mat, taxa_are_rows = TRUE),
-  phyloseq::tax_table(tax),
-  phyloseq::sample_data(sampledata)
-)
 
+saveRDS(ps, file.path(rds_dir, "phyloseq_object.rds"))
+info("✅ Phyloseq object successfully saved at: ", file.path(rds_dir, "ps_rel.rds"))
 validObject(ps)
+
 
 # -------- Export taxonomy table (selected columns) --------
 info("Exporting taxonomy table…")
-tax_df <- as.data.frame(tax)
+tax_df <- as.data.frame(taxa)
 tax_df$OTU <- rownames(tax_df)
 cols <- intersect(c("OTU", "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"), colnames(tax_df))
 write.csv(tax_df[, cols, drop = FALSE], file.path(tables_dir, "taxonomy_table.csv"), row.names = FALSE)
+
 
 # -------- Alpha diversity --------
 info("Computing alpha diversity…")
 alpha_div <- phyloseq::estimate_richness(ps, measures = c("Observed", "Shannon", "Simpson"))
 alpha_div$Sample <- rownames(alpha_div)
+
+# Normalize sample IDs in alpha_div
+alpha_div$Sample <- gsub("\\.fastq.*$", "", alpha_div$Sample)
+alpha_div$Sample <- gsub("_R[12]_001$", "", alpha_div$Sample)
+#alpha_div$Sample <- gsub("_S\\d+_L\\d+", "", alpha_div$Sample)
 write.csv(alpha_div, file.path(tables_dir, "alpha_diversity.csv"), row.names = FALSE)
 
 # -------- Genus-level relative abundance and Top N per sample --------
@@ -207,40 +298,82 @@ info("Summarizing genus-level relative abundance…")
 ps_rel <- phyloseq::transform_sample_counts(ps, function(x) x / sum(x) * 100)
 ps_genus <- phyloseq::tax_glom(ps_rel, taxrank = "Genus")
 genus_df <- phyloseq::psmelt(ps_genus) %>%
-  select(Sample, Abundance, Kingdom, Phylum, Class, Order, Family, Genus)
+  dplyr::select(Sample, Abundance, Kingdom, Phylum, Class, Order, Family, Genus)
 
-# Clean missing taxonomy labels
-for (col in c("Kingdom","Phylum","Class","Order","Family","Genus")) {
+# Normalize Sample IDs
+genus_df$Sample <- gsub("\\.fastq.*$", "", genus_df$Sample)
+genus_df$Sample <- gsub("_R[12]_001$", "", genus_df$Sample)
+#genus_df$Sample <- gsub("_S\\d+_L\\d+", "", genus_df$Sample)
+
+# Replace missing taxonomy with "Unclassified_*"
+for (col in c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus")) {
   genus_df[[col]][is.na(genus_df[[col]]) | genus_df[[col]] == ""] <- paste0("Unclassified_", col)
 }
-
 genus_df$Abundance <- round(genus_df$Abundance, 3)
 
-# Top N genera per sample
+# ---- Compute Top N genera safely ----
 N <- as.integer(opt$top_genera)
-genus_topN <- genus_df %>%
-  group_by(Sample) %>%
-  arrange(desc(Abundance), .by_group = TRUE) %>%
-  slice_head(n = N) %>%
-  ungroup()
+if (!is.finite(N) || N <= 0) N <- 10
 
-write.csv(genus_topN, file.path(tables_dir, sprintf("genus_top%d_per_sample.csv", N)), row.names = FALSE)
+if (nrow(genus_df) > 0) {
+  genus_topN <- genus_df %>%
+    dplyr::group_by(Sample) %>%
+    dplyr::arrange(dplyr::desc(Abundance), .by_group = TRUE) %>%
+    dplyr::slice_head(n = N) %>%
+    dplyr::ungroup()
+} else {
+  info("WARNING: genus_df is empty; creating empty genus_topN table.")
+  genus_topN <- genus_df
+}
+
+# Save the Top-N CSV
+write.csv(
+  genus_topN,
+  file.path(tables_dir, sprintf("genus_top%d_per_sample.csv", N)),
+  row.names = FALSE
+)
 
 # -------- Combined JSON for Nextflow artifact --------
 info("Writing combined JSON artifact…")
-alpha_export <- alpha_div %>% select(Sample, Observed, Shannon, Simpson)
+
+# Normalize sample names for JSON
+genus_topN$Sample <- gsub("\\.fastq.*$", "", genus_topN$Sample)
+genus_topN$Sample <- gsub("_R[12]_001$", "", genus_topN$Sample)
+#genus_topN$Sample <- gsub("_S\\d+_L\\d+", "", genus_topN$Sample)
+#genus_topN$Sample <- gsub("_L\\d+$", "", genus_topN$Sample)
+
+metadata <- data.frame(Sample = unique(genus_df$Sample))
+alpha_export <- alpha_div %>%
+  dplyr::select(Sample, Observed, Shannon, Simpson)
+
 combined_json <- list(
   abundance = genus_topN,
-  diversity = alpha_export
+  diversity = alpha_export,
+  metadata  = metadata
 )
 
 final_json_path <- file.path(json_dir, "full_microbiome_summary.json")
 jsonlite::write_json(combined_json, final_json_path, pretty = TRUE, auto_unbox = TRUE)
 
+combined_json <- list(
+  abundance = genus_topN,
+  diversity = alpha_export,
+  metadata = metadata
+)
+
+
+final_json_path <- file.path(json_dir, "full_microbiome_summary.json")
+# Normalize Sample names in JSON export
+genus_topN$Sample <- gsub("\\.fastq.*$", "", genus_topN$Sample)
+genus_topN$Sample <- gsub("_R[12]_001$", "", genus_topN$Sample)
+#genus_topN$Sample <- gsub("_S\\d+_L\\d+", "", genus_topN$Sample)
+#genus_topN$Sample <- gsub("_L\\d+$", "", genus_topN$Sample)
+jsonlite::write_json(combined_json, final_json_path, pretty = TRUE, auto_unbox = TRUE)
+
 # -------- Save important R objects (optional) --------
 saveRDS(ps, file.path(rds_dir, "phyloseq_object.rds"))
 saveRDS(seqtab.filtered, file.path(rds_dir, "seqtab_filtered.rds"))
-saveRDS(tax, file.path(rds_dir, "taxonomy_table.rds"))
+saveRDS(taxa, file.path(rds_dir, "taxonomy_table.rds"))
 saveRDS(ps_rel, file.path(rds_dir, "ps_rel.rds"))
 
 # -------- Done --------
