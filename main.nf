@@ -128,41 +128,43 @@ process REPORT {
     """
 }
 
-// ===============================
-// PROCESS: UPLOAD_SUPABASE
-// ===============================
 process UPLOAD_SUPABASE {
     tag "$sample_id"
-    publishDir "${params.output_dir}/upload_logs", mode: 'copy'
+
+    publishDir "${params.output_dir}/uploaded", mode: 'copy'
 
     input:
-    tuple val(sample_id), path(pdf_file), path(json_file)
-
-    env SUPABASE_URL = params.supabase_url
-    env SUPABASE_KEY = params.supabase_key
-    env SUPABASE_BUCKET = params.supabase_bucket
+    tuple val(sample_id), path(pdf), path(txt)
 
     output:
-    path "upload_done_${sample_id}.txt"
+    path "upload_logs/${sample_id}_upload.log"
+
+    env SUPABASE_URL     = params.supabase_url
+    env SUPABASE_KEY     = params.supabase_key
+    env SUPABASE_BUCKET  = params.supabase_bucket
 
     script:
     """
-    echo "[INFO] Uploading final outputs for ${sample_id} to Supabase Storage..."
+    echo "[INFO] Uploading outputs for ${sample_id} to Supabase..."
+    python3 - <<'PY'
+import os, sys
+from supabase import create_client, Client
 
-    for FILE in ${pdf_file} ${json_file}; do
-      BASENAME=\$(basename "\${FILE}")
-      MIME_TYPE=\$(file --mime-type -b "\${FILE}")
-      echo "[UPLOAD] -> \${SUPABASE_BUCKET}/\${BASENAME} (\${MIME_TYPE})"
+url = os.environ['SUPABASE_URL']
+key = os.environ['SUPABASE_KEY']
+bucket = os.environ['SUPABASE_BUCKET']
+supabase = create_client(url, key)
 
-      curl -s -X POST "\${SUPABASE_URL}/storage/v1/object/\${SUPABASE_BUCKET}/\${BASENAME}" \\
-        -H "Authorization: Bearer \${SUPABASE_KEY}" \\
-        -H "Content-Type: \${MIME_TYPE}" \\
-        --data-binary "@\${FILE}" || echo "[WARN] Upload failed for \${BASENAME}"
-    done
+for file_path in [${pdf}, ${txt}]:
+    file_name = os.path.basename(file_path)
+    with open(file_path, 'rb') as f:
+        res = supabase.storage.from_(bucket).upload(f"reports/{file_name}", f)
+        print(f"[UPLOAD] {file_name} -> {res}")
 
-    echo "✅ Uploaded PDF and JSON for ${sample_id} to Supabase bucket: \${SUPABASE_BUCKET}" > upload_done_${sample_id}.txt
+PY
     """
 }
+
 
 // ===============================
 // WORKFLOW
