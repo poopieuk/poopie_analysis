@@ -175,10 +175,10 @@ workflow {
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
 
-    // Combine PDF + JSON → Supabase upload
+    // Combine PDF + TXT → Supabase upload
     upload_input = report_ch.report_pdfs
-        .combine(report_ch.report_jsons)
-        .map { pdf, json -> tuple(params
-   
+        .combine(report_ch.report_txts)
+        .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
+
     UPLOAD_SUPABASE(upload_input)
 }
