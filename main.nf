@@ -5,8 +5,8 @@ nextflow.enable.dsl=2
 // ===============================
 params.input_dir   = "s3://poopie-data/"          // Input FASTQs from S3
 params.output_dir  = "${projectDir}/results"
-params.tax_train   = "$s3://poopie-data/silva_nr_v138_train_set.fa.gz"
-params.tax_species = "$s3://poopie-data/silva_species_assignment_v138.fa.gz"
+params.tax_train   = "s3://poopie-data/silva_nr_v138_train_set.fa.gz"
+params.tax_species = "s3://poopie-data/silva_species_assignment_v138.fa.gz"
 params.preprocess_r = "${projectDir}/poopie-pipeline/poopie_pipeline.R"
 params.summary_r    = "${projectDir}/poopie-pipeline/generate_summary_single.R"
 params.biomarker_r  = "${projectDir}/poopie-pipeline/biomarker_single.R"
