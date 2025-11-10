@@ -7,6 +7,7 @@ Your Poopie Report — Dynamic Microbiome Report Generator (v8 full)
 """
 
 # ========= Imports =========
+
 import shutil
 import json
 import pandas as pd
@@ -15,6 +16,23 @@ import sys
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import re
+
+def normalize_id(s):
+    """Normalize sample IDs for consistent matching between R output and Nextflow."""
+    if s is None:
+        return "unknown_sample"
+    s = str(s).strip().lower()
+    s = s.replace("-", "_").replace(" ", "_")
+    s = re.sub(r"\.f(ast)?q(\.gz)?$", "", s)   # remove .fastq/.fq/.gz
+    s = re.sub(r"_r[12]_001$", "", s)          # remove _R1_001/_R2_001
+    s = re.sub(r"_s\d+_l\d+", "", s)           # remove _S81_L001, etc.
+    s = re.sub(r"_l\d+$", "", s)               # remove trailing lane like _L001
+    s = re.sub(r"_$", "", s)                   # cleanup trailing _
+    return s
+
+
+
 
 
 from fuzzywuzzy import fuzz
@@ -54,6 +72,8 @@ print(f"[INFO] All samples: {args.all}")
 try:
     with open(args.kb, "r") as f:
         kb_data = json.load(f)
+        kb = kb_data  # alias for backward compatibility
+
     kb_normalized = {k.lower().replace(" ", "_"): v for k, v in kb_data.items()}
     print(f"[INFO] Loaded {len(kb_normalized)} entries from KB.")
 except Exception as e:
@@ -179,10 +199,49 @@ if isinstance(data_all, list):
         "scores": {}
     }
 
+# --- Helper function to ensure consistent Sample columns ---
+def normalize_df(section):
+    df = pd.DataFrame(section)
+    if df.empty:
+        return pd.DataFrame(columns=["Sample", "Sample_norm"])
+    # Fallback if 'Sample' missing
+    if "Sample" not in df.columns and "_row" in df.columns:
+        df["Sample"] = df["_row"]
+    if "Sample" not in df.columns:
+        df["Sample"] = "Unknown"
+    # Normalize
+    df["Sample"] = df["Sample"].astype(str).str.strip()
+    df["Sample_norm"] = df["Sample"].str.lower().str.replace(r'[^a-z0-9]+', '_', regex=True)
+    return df
+
 # --- Create base DataFrames safely ---
-abundance_df = pd.DataFrame(data_all.get("abundance", []))
-diversity_df = pd.DataFrame(data_all.get("diversity", []))
-meta_df = pd.DataFrame(data_all.get("metadata", []))
+abundance_df = normalize_df(data_all.get("abundance", []))
+diversity_df = normalize_df(data_all.get("diversity", []))
+meta_df      = normalize_df(data_all.get("metadata", []))
+
+# --- Normalize sample IDs inside all dataframes for matching ---
+import re
+
+def normalize_id(x):
+    """Normalize sample IDs exactly like the JSON normalization."""
+    if isinstance(x, str):
+        x = x.lower().replace("-", "_").replace(".", "_")
+        x = re.sub(r'[^a-z0-9]+', '_', x)
+        return x.strip('_')
+    return x
+
+for df in [abundance_df, diversity_df, meta_df]:
+    if "Sample" in df.columns:
+        df["Sample_norm"] = df["Sample"].apply(normalize_id)
+
+
+# --- Normalize Sample IDs in all dataframes ---
+for df_name, df in [("abundance", abundance_df), ("diversity", diversity_df)]:
+    if "Sample" in df.columns:
+        df["Sample_norm"] = df["Sample"].apply(normalize_id)
+        print(f"[DEBUG] Normalized {len(df)} rows in {df_name}_df")
+    else:
+        print(f"[WARN] No 'Sample' column found in {df_name}_df")
 
 # --- Optional: Load genus_abundance.csv ---
 genus_df = None
@@ -218,11 +277,64 @@ print(f"[INFO] DataFrames -> abundance:{len(abundance_df)}, diversity:{len(diver
 
 # ========= Normalize Genus Function =========
 def normalize_genus(name: str) -> str:
+
+
     """Normalize genus names for consistent lookup."""
+
     if not isinstance(name, str):
         return ""
     return name.strip().lower().replace("/", "_").replace("-", "_").replace(" ", "_")
 
+
+
+# ========= Load JSON Knowledgebase =========
+# --- Load Knowledge Base JSON safely ---
+try:
+    with open(args.kb, "r") as f:
+        kb_data = json.load(f)
+    print(f"✅ Loaded knowledge base with {len(kb_data)} entries.")
+except Exception as e:
+    print(f"❌ Failed to load knowledge base from {args.kb}: {e}")
+    sys.exit(1)
+# --- Load Input JSON ---
+try:
+    with open(args.input_json, "r") as f:
+        data_all = json.load(f)
+    print(f"✅ Loaded input JSON with {len(data_all)} records.")
+except Exception as e:
+    print(f"❌ Failed to load input JSON: {e}")
+    sys.exit(1)
+
+# --- Load Sections JSON ---
+sections = None
+if getattr(args, "sections_json", None):
+    try:
+        with open(args.sections_json) as f:
+            sections = json.load(f)
+        print(f"✅ Loaded sections JSON: {args.sections_json}")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not load sections file ({args.sections_json}): {e}")
+else:
+    print("⚠️ Warning: No sections JSON provided — continuing without it.")
+
+#
+#try:
+#    with open("pp_report.json", "r") as f:
+#        kb_raw = json.load(f)
+
+
+
+#    kb = kb_raw.get("bacteria", {})
+#    thresholds = kb_raw.get("thresholds", {"high": 10.0, "moderate": 1.0})
+
+#    try:
+#        with open("section_explanations.json", "r") as f:
+#            section_texts = json.load(f)
+#    except FileNotFoundError:
+#        sys.exit("❌ Could not find section_explanations.json")
+
+    # ✅ Now we can safely normalize
+    kb_normalized = {normalize_genus(k): v for k, v in kb.items()}
 
 # ========= Load Knowledge Base (pp_report.json) =========
 try:
@@ -261,8 +373,8 @@ print(f"[INFO] Loaded {len(kb_normalized)} normalized genus entries from KB.")
 #kb_normalized = {normalize_genus(k): v for k, v in kb.items()}
 
 
-
-
+#except FileNotFoundError:
+  #  sys.exit("❌ Could not find pp_report.json")
 
 
 #abundance_df = pd.DataFrame(data_all["abundance"])
@@ -277,12 +389,22 @@ if isinstance(data_all, list):
 elif isinstance(data_all, dict):
     abundance_df = pd.DataFrame(data_all.get("abundance", []))
     diversity_df = pd.DataFrame(data_all.get("diversity", []))
+
+    # Handle missing metadata gracefully
+    if "metadata" in data_all and data_all["metadata"]:
+        meta_df = pd.DataFrame(data_all["metadata"])
+        print(f"✅ Loaded metadata with {len(meta_df)} entries.")
+    else:
+        print("⚠️ No metadata found in JSON — using empty dataframe.")
+        meta_df = pd.DataFrame()
+
     #meta_df = pd.DataFrame(data_all["metadata"])
     meta_df = pd.DataFrame(data_all.get("metadata", []))
     if meta_df.empty:
         meta_df = pd.DataFrame(columns=["Sample", "Sample_norm"])
     else:
         meta_df["Sample_norm"] = meta_df["Sample"].apply(normalize_id)
+
 
 else:
     raise ValueError("Unexpected JSON format — expected list or dict with 'abundance' and 'diversity' keys.")
@@ -332,6 +454,46 @@ from fuzzywuzzy import process
 
 
 def get_bacteria_info(genus, abundance, thresholds=None, kb_normalized=None):
+
+    if thresholds is None:
+        thresholds = {"high": 10, "low": 1}
+    if kb_normalized is None:
+        kb_normalized = {}
+    thresholds_high = thresholds.get("high", 10)
+    thresholds_mod = thresholds.get("moderate", 1)
+    # Normalize genus name for lookup
+    key = genus.lower().replace(" ", "_").replace("-", "_")
+
+    # 1️⃣ Direct match
+    if key in kb_normalized:
+        entry = kb_normalized[key]
+    else:
+        # 2️⃣ Fuzzy match with safety checks
+        from fuzzywuzzy import process
+        result = process.extractOne(key, kb_normalized.keys()) if kb_normalized else None
+        if result:
+            match, score = result
+            if match and score > 80:
+                entry = kb_normalized[match]
+            else:
+                return None
+        else:
+            return None
+
+    if abundance >= thresholds_high:
+        level_text = entry.get("high_abundance", "")
+    elif abundance >= thresholds_mod:
+        level_text = entry.get("moderate_abundance", "")
+    else:
+        level_text = entry.get("low_abundance", "")
+
+    return {
+        "overview": entry.get("overview", ""),
+        "role": entry.get("role", ""),
+        "level_text": level_text,
+        "recommendations": entry.get("recommendations", []),
+    }
+
     """Fetch bacterial information from the knowledge base (with fuzzy matching)."""
     genus_norm = normalize_genus(genus)
     info = kb_normalized.get(genus_norm) if kb_normalized else None
@@ -364,21 +526,12 @@ def get_bacteria_info(genus, abundance, thresholds=None, kb_normalized=None):
         "recommendations": info.get("recommendations", []),
         "level": level,
         "level_text": level_text
+        
     }
 
 
-# ========= Normalize Sample IDs =========
-def normalize_id(s):
-    if s is None:
-        return "unknown_sample"
-    return (
-        str(s)
-        .replace("_R1_001", "")
-        .replace("_R2_001", "")
-        .replace(".fq.gz", "")
-        .replace("-", "_")     # optional, if you want underscores
-        .lower()
-    )
+
+
 
 
 
@@ -396,6 +549,7 @@ for needed_col, df in [("Sample", diversity_df), ("Sample", abundance_df), ("Gen
 diversity_df["Sample_norm"] = diversity_df["Sample"].apply(normalize_id)
 abundance_df["Sample_norm"] = abundance_df["Sample"].apply(normalize_id)
 abundance_df["Genus_norm"] = abundance_df["Genus"].apply(normalize_genus)
+
 
 # --- Safety: ensure meta_df exists even if JSON doesn't define it ---
 if 'meta_df' not in locals():
@@ -525,12 +679,16 @@ def make_biomarker_table(df_grouped, table_title, styles, genus_subset=None, kb_
         abundance = float(r["Abundance"])
         key = norm(genus)
 
+
+        info = kb_normalized.get(key, {}) if kb_normalized else {}
+
         # Normalize genus name before lookup
         genus_name_norm = normalize_genus(key)
         info = kb_normalized.get(genus_name_norm, {}) if kb_normalized else {}
 
         if not info:
             print(f"[WARN] No summary for genus: {key} (lookup: {genus_name_norm})")
+
 
         # Determine description based on abundance thresholds
         if abundance >= high_thr:
@@ -651,17 +809,70 @@ def make_biomarker_pie(good_bugs, bad_bugs, variable_bugs):
 def generate_report(sample_id):
 
     global prebiotic_targets
+    from datetime import datetime
+    import os
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    pdf_path = os.path.join(args.output, f"{args.sample}_report_{timestamp}.pdf")
+    txt_path = os.path.join(args.output, f"{args.sample}_summary_{timestamp}.txt")
 
     # Utility: normalize sample names safely
+    import re
+    # --- Normalize sample columns in all dataframes ---
+    import re
+
     def normalize_id(x):
+        """Normalize sample IDs exactly like JSON normalization."""
         if isinstance(x, str):
-            return x.lower().replace("-", "_").replace(".", "_")
+            x = x.lower().replace("-", "_").replace(".", "_")
+            x = re.sub(r'[^a-z0-9]+', '_', x)
+            return x.strip('_')
         return x
+
+    if "Sample" in abundance_df.columns:
+        abundance_df["Sample_norm"] = abundance_df["Sample"].apply(normalize_id)
+    if "Sample" in diversity_df.columns:
+        diversity_df["Sample_norm"] = diversity_df["Sample"].apply(normalize_id)
+    if "Sample" in meta_df.columns:
+        meta_df["Sample_norm"] = meta_df["Sample"].apply(normalize_id)
+
+    def normalize_id(x):
+        """Normalize sample IDs exactly like JSON normalization."""
+        if isinstance(x, str):
+            x = x.lower().replace("-", "_").replace(".", "_")
+            x = re.sub(r'[^a-z0-9]+', '_', x)
+            return x.strip('_')
+        return x
+
     sample_id_norm = normalize_id(sample_id)
     print(f"\n📘 Generating report for: {sample_id_norm}")
 
+    sample_abundance = abundance_df[abundance_df["Sample_norm"] == sample_id_norm].copy()
+    sample_diversity = diversity_df[diversity_df["Sample_norm"] == sample_id_norm].copy()
+
+    if sample_diversity.empty:
+        print(f"[WARN] Diversity data not found for '{sample_id}' (normalized as '{sample_id_norm}').")
+    else:
+        print(f"✅ Found diversity data for '{sample_id_norm}'")
+
+    print("\n🧠 DEBUG: Checking sample matching inside generate_report()")
+    print("Available normalized sample IDs in abundance_df:")
+    print(abundance_df["Sample_norm"].unique())
+    print(f"Looking for: {sample_id_norm}")
+
+    if sample_abundance.empty:
+        print(f"❌ No rows found for '{sample_id_norm}' — mismatch likely in normalization or dataframe overwrite.")
+        import sys;
+        sys.exit(1)
+    else:
+        print(f"✅ Found {len(sample_abundance)} abundance rows for '{sample_id_norm}'")
+
     # define filename early
+
+    pdf_name = f"Your_Poopie_Report_{sample_id.replace('.', '_')}.pdf"
+
    # pdf_name = f"{timestamp}_{sample_id}.pdf"
+
 
     # ===== Initialize styles, story, and TOC early =====
     styles = getSampleStyleSheet()
@@ -776,6 +987,10 @@ def generate_report(sample_id):
     # You can now continue building your PDF below:
     # (Add intro, diversity, probiotic sections, etc.)
 
+
+
+    sample_diversity = diversity_df[diversity_df["Sample_norm"] == sample_id_norm]
+
     # --- Safe sample matching ---
     def normalize_id(x):
         """Normalize sample names for robust comparison."""
@@ -794,13 +1009,17 @@ def generate_report(sample_id):
 
     sample_diversity = diversity_df[diversity_df["Sample_norm"] == sample_norm]
 
-    if sample_diversity.empty:
-        print(f"[WARN] Diversity data not found for '{sample_id}' (normalized as '{sample_norm}').")
-        row = pd.Series({"Observed": None, "Shannon": None, "Simpson": None})
-    else:
+    # --- Overview diversity indices (safe) ---
+    try:
+        if sample_diversity.empty:
+            raise IndexError
         row = sample_diversity.iloc[0]
+    except IndexError:
+        print(f"[WARN] Diversity data missing for '{sample_id}'. Using defaults.")
+        row = pd.Series({"Observed": 0, "Shannon": 0.0, "Simpson": 0.0})
 
     #sample_diversity = diversity_df[diversity_df["Sample_norm"] == sample_id_norm]
+
     # --- Collapse sample abundance to genus level ---
     sample_abundance = (
         abundance_df[abundance_df["Sample_norm"] == sample_id_norm]
@@ -824,7 +1043,10 @@ def generate_report(sample_id):
         sys.exit("❌ No matching sample in abundance data.")
 
     # --- Overview diversity indices ---
+
+
     #row = sample_diversity.iloc[0]
+
     observed = int(row.get("Observed", 0))
     shannon = float(row.get("Shannon", 0.0))
     simpson = float(row.get("Simpson", 0.0))
@@ -1243,6 +1465,9 @@ If one or two species dominate, this number drops.<br/><br/>
             ))
             story.append(Spacer(1, 6))
 
+            # --- Extract JSON-based description dynamically
+            info = get_bacteria_info(genus_norm, raw_abundance)
+
             # --- Extract JSON-based description dynamically ---
             genus_norm = normalize_genus(genus)
 
@@ -1252,6 +1477,7 @@ If one or two species dominate, this number drops.<br/><br/>
                 thresholds=thresholds,
                 kb_normalized=kb_normalized
             )
+
 
             if info:
                 story.append(Paragraph(f"<b>Overview:</b> {info['overview']}", styles["Body"]))
@@ -1270,7 +1496,12 @@ If one or two species dominate, this number drops.<br/><br/>
                 ))
                 story.append(Spacer(1, 10))
 
-            story.append(Spacer(1, 12))
+
+    story.append(Spacer(1, 12))
+
+
+    story.append(Spacer(1, 12))
+
 
     # --- Probiotic Diversity Score Section ---
     if probiotic_diversity_score < 4:
@@ -1321,10 +1552,15 @@ If one or two species dominate, this number drops.<br/><br/>
     ))
     story.append(Spacer(1, 12))
 
-    prebiotic_data = section_texts["sections"]["Prebiotics"]
+    prebiotic_data = (
+        section_texts.get("sections", {}).get("Prebiotics", {
+            "title": "Prebiotics",
+            "text": "No Prebiotics section found in knowledge base; skipping this section."
+        })
+    )
     #story.append(Paragraph("<b>Prebiotics</b>", styles["Section"]))
     #story.append(divider())
-    story.append(Paragraph(prebiotic_data["intro"], styles["Body"]))
+    #story.append(Paragraph(prebiotic_data["intro"], styles["Body"]))
     story.append(Spacer(1, 10))
 
     # --- compute prebiotic score dynamically (you already had this part) ---
@@ -1899,6 +2135,12 @@ If one or two species dominate, this number drops.<br/><br/>
     from reportlab.platypus import SimpleDocTemplate
 
     # --- Output path ---
+
+    pdf_path = os.path.join(
+        os.path.expanduser("~/Downloads"),
+        f"Your_Poopie_Report_{sample_id.replace('.', '_')}.pdf"
+    )
+
     from datetime import datetime
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1909,6 +2151,17 @@ If one or two species dominate, this number drops.<br/><br/>
 
     pdf_name = f"{timestamp}_{sample_id}.pdf"
     pdf_path = os.path.join(os.path.dirname(args.output), pdf_name)
+    # --- Also create a .txt file with JSON output ---
+    txt_name = f"{timestamp}_{sample_id}.txt"
+    txt_path = os.path.join(os.path.dirname(args.output), txt_name)
+
+    try:
+        # Pretty-print JSON data to text file
+        with open(txt_path, "w") as f:
+            json.dump(data_all, f, indent=2)
+        print(f"📝 TXT report saved to: {txt_path}")
+    except Exception as e:
+        print(f"❌ Failed to write TXT report: {e}")
 
     print(f"📝 Writing PDF to: {pdf_path}")
 
@@ -1988,43 +2241,14 @@ If one or two species dominate, this number drops.<br/><br/>
 
         print("✅ PDF generated successfully!")
 
-    #    print(f"📄 Saved to: {pdf_path}")
+        print(f"📄 Saved to: {pdf_path}")
     except Exception as e:
         print(f"❌ PDF build error: {e}")
 
-from datetime import datetime
-import json, os, shutil
-
-# Assume you already parsed args.sample and args.output
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-sample_id = os.path.splitext(os.path.basename(args.sample))[0]
 
 
-txt_name = f"{timestamp}_{sample_id}.txt"
-
-#pdf_path = os.path.join(os.path.dirname(args.output), pdf_name)
-txt_path = os.path.join(os.path.dirname(args.output), txt_name)
-
-# Ensure output directory exists
-#os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
-
-# ---- Copy PDF safely ----
-if os.path.exists(args.output):
-    shutil.copy(args.output, pdf_path)
-    print(f"✅ Saved PDF report → {pdf_path}")
-else:
-    print(f"[WARN] PDF file not found at {args.output}; skipping copy.")
-
-# ---- Write summary text ----
-try:
-    with open(txt_path, "w") as f:
-        f.write("Microbiome Report Summary\n")
-        f.write(f"Sample: {sample_id}\nGenerated: {timestamp}\n\n")
-        f.write(json.dumps(data_all, indent=2))
-    print(f"✅ Saved JSON summary → {txt_path}")
-except Exception as e:
-    print(f"[WARN] Could not write summary file: {e}")
 
 # ========= Script Entry Point =========
 if __name__ == "__main__":
+
     generate_report(args.sample)
