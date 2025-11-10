@@ -61,7 +61,7 @@ colnames(genus_abundances)[is.na(colnames(genus_abundances))] <- "unclassified"
 colnames(genus_abundances) <- make.names(colnames(genus_abundances), unique = TRUE)
 
 genus_abundances$SampleID <- sample_id
-write.csv(genus_abundances, file.path(out_dir, "genus_abundance.csv"), row.names = FALSE)
+write.csv(genus_abundances, file.path(out_dir, paste0(sample_id, "_genus_abundance.csv")), row.names = FALSE)
 cat("✅ Saved genus_abundance.csv\n")
 
 # ─────────────────────────────────────────────
@@ -120,6 +120,12 @@ skin_score       <- rescale((good_ratio / (bad_ratio + 1e-6)) * diversity_index,
 nutrition_score  <- rescale(good_ratio * diversity_index, to=c(0,10))
 pathobiont_score <- rescale(1 / (bad_ratio + 1e-6), to=c(0,10))
 
+safe_rescale <- function(x, to=c(0,10)) {
+  if (is.na(x) || is.infinite(x)) return(0)
+  tryCatch(rescale(x, to=to), error = function(e) 0)
+}
+
+
 summary_df <- data.frame(
   SampleID = sample_id,
   GutScore = round(gut_score, 2),
@@ -133,7 +139,8 @@ summary_df <- data.frame(
   VariableBugLoad = round(variable_total, 5)
 )
 
-write.csv(summary_df, file.path(out_dir, "microbiome_summary.csv"), row.names = FALSE)
+write.csv(summary_df, file.path(out_dir, paste0(sample_id, "_microbiome_summary.csv")), row.names = FALSE)
+
 cat("✅ Saved microbiome_summary.csv\n")
 
 # ─────────────────────────────────────────────
