@@ -130,9 +130,12 @@ process UPLOAD_SUPABASE {
     output:
     path "upload_done.txt", emit: upload_flag
 
-    env SUPABASE_URL    = params.supabase_url
-    env SUPABASE_KEY    = params.supabase_key
-    env SUPABASE_BUCKET = params.supabase_bucket
+    // ✅ Environment variables must go here inside `process` config block
+    environment = [
+        'SUPABASE_URL': params.supabase_url,
+        'SUPABASE_KEY': params.supabase_key,
+        'SUPABASE_BUCKET': params.supabase_bucket
+    ]
 
     script:
     """
@@ -154,6 +157,7 @@ PY
     echo "done" > upload_done.txt
     """
 }
+
 
 // ===============================
 // WORKFLOW
