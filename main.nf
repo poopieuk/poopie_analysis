@@ -130,40 +130,39 @@ process REPORT {
 
 process UPLOAD_SUPABASE {
     tag "$sample_id"
-
-    publishDir "${params.output_dir}/uploaded", mode: 'copy'
+    publishDir "${params.output_dir}/supabase_upload", mode: 'copy'
 
     input:
     tuple val(sample_id), path(pdf), path(txt)
 
     output:
-    path "upload_logs/${sample_id}_upload.log"
+    path "upload_done.txt", emit: upload_flag
 
-    env SUPABASE_URL     = params.supabase_url
-    env SUPABASE_KEY     = params.supabase_key
-    env SUPABASE_BUCKET  = params.supabase_bucket
+    env SUPABASE_URL    = params.supabase_url
+    env SUPABASE_KEY    = params.supabase_key
+    env SUPABASE_BUCKET = params.supabase_bucket
 
     script:
     """
-    echo "[INFO] Uploading outputs for ${sample_id} to Supabase..."
+    echo "[INFO] Uploading files for ${sample_id} to Supabase..."
     python3 - <<'PY'
-import os, sys
+import os
 from supabase import create_client, Client
 
-url = os.environ['SUPABASE_URL']
-key = os.environ['SUPABASE_KEY']
-bucket = os.environ['SUPABASE_BUCKET']
-supabase = create_client(url, key)
+url  = os.environ["SUPABASE_URL"]
+key  = os.environ["SUPABASE_KEY"]
+bucket = os.environ["SUPABASE_BUCKET"]
 
-for file_path in [${pdf}, ${txt}]:
-    file_name = os.path.basename(file_path)
-    with open(file_path, 'rb') as f:
-        res = supabase.storage.from_(bucket).upload(f"reports/{file_name}", f)
-        print(f"[UPLOAD] {file_name} -> {res}")
-
+supabase: Client = create_client(url, key)
+for f in ["${pdf}", "${txt}"]:
+    dest_name = os.path.basename(f)
+    supabase.storage.from_(bucket).upload(dest_name, open(f, "rb"))
+print("✅ Upload complete for ${sample_id}")
 PY
+    echo "done" > upload_done.txt
     """
 }
+
 
 
 // ===============================
