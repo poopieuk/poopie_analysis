@@ -21,8 +21,9 @@ params.supabase_key     = "${SUPABASE_KEY ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVC
 params.supabase_bucket  = "${SUPABASE_BUCKET ?: 'reports'}"
 
 // ===============================
-// PROCESS: PREPROCESS
+// PROCESS DEFINITIONS
 // ===============================
+
 process PREPROCESS {
     tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
@@ -49,9 +50,6 @@ process PREPROCESS {
     """
 }
 
-// ===============================
-// PROCESS: SUMMARY
-// ===============================
 process SUMMARY {
     tag "$sample_id"
     publishDir "${params.output_dir}/summary", mode: 'copy'
@@ -73,9 +71,6 @@ process SUMMARY {
     """
 }
 
-// ===============================
-// PROCESS: BIOMARKERS
-// ===============================
 process BIOMARKERS {
     tag "$sample_id"
     publishDir "${params.output_dir}/biomarkers", mode: 'copy'
@@ -101,9 +96,6 @@ process BIOMARKERS {
     """
 }
 
-// ===============================
-// PROCESS: REPORT
-// ===============================
 process REPORT {
     tag "$sample_id"
     publishDir "${params.output_dir}/pdf", mode: 'copy'
@@ -133,7 +125,7 @@ process UPLOAD_SUPABASE {
     publishDir "${params.output_dir}/supabase_upload", mode: 'copy'
 
     input:
-    tuple val(sample_id), path(pdf), path(txt)
+    tuple val(sample_id), path(pdf), path(json)
 
     output:
     path "upload_done.txt", emit: upload_flag
@@ -154,7 +146,7 @@ key  = os.environ["SUPABASE_KEY"]
 bucket = os.environ["SUPABASE_BUCKET"]
 
 supabase: Client = create_client(url, key)
-for f in ["${pdf}", "${txt}"]:
+for f in ["${pdf}", "${json}"]:
     dest_name = os.path.basename(f)
     supabase.storage.from_(bucket).upload(dest_name, open(f, "rb"))
 print("✅ Upload complete for ${sample_id}")
@@ -162,8 +154,6 @@ PY
     echo "done" > upload_done.txt
     """
 }
-
-
 
 // ===============================
 // WORKFLOW
@@ -176,10 +166,9 @@ workflow {
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
 
-    // Combine PDF + TXT → Supabase upload
     upload_input = report_ch.report_pdfs
-        .combine(report_ch.report_txts)
-        .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
+        .combine(report_ch.report_jsons)
+        .map { pdf, json -> tuple(params.sample_id, pdf, json) }
 
     UPLOAD_SUPABASE(upload_input)
 }
