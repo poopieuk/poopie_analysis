@@ -160,28 +160,29 @@ PY
 // ===============================
 workflow {
 
-    // Detect FASTQ files from your input directory
+    // Detect FASTQ files from input directory
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
-    // Build tuples of (sample_id, file)
+    // Create tuples of (sample_id, file)
     preprocess_in = input_files_ch.map { file ->
         tuple(params.sample_id, file)
     }
 
     preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
 
-    // ✅ Correct way to call PREPROCESS with two inputs
-    preprocess_ch = PREPROCESS(preprocess_in)
+    // ✅ Explicit DSL2 input mapping
+    preprocess_ch = PREPROCESS(input: preprocess_in)
 
-    // Continue downstream
-    summary_ch    = SUMMARY(preprocess_ch.ps_rds)
-    biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
-    report_ch     = REPORT(preprocess_ch.json_out)
+    // Downstream processes
+    summary_ch    = SUMMARY(input: preprocess_ch.ps_rds)
+    biomarker_ch  = BIOMARKERS(input: preprocess_ch.ps_rds)
+    report_ch     = REPORT(input: preprocess_ch.json_out)
 
     upload_input = report_ch.report_pdfs
         .combine(report_ch.report_jsons)
         .map { pdf, json -> tuple(params.sample_id, pdf, json) }
 
-    UPLOAD_SUPABASE(upload_input)
+    UPLOAD_SUPABASE(input: upload_input)
 }
+
