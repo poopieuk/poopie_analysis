@@ -172,7 +172,7 @@ PY
 // WORKFLOW
 // ===============================
 workflow {
-    single_sample_ch = Channel.of(params.sample_id)
+    single_sample_ch = Channel.value(params.sample_id)
 
     preprocess_ch = PREPROCESS(single_sample_ch)
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
