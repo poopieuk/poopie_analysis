@@ -24,7 +24,7 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // PROCESS DEFINITIONS
 // ===============================
 process PREPROCESS {
-    tag "${params.sample_id}"
+    tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
     input:
@@ -32,29 +32,28 @@ process PREPROCESS {
     path tax_train
     path tax_species
 
-
     output:
-    tuple val(params.sample_id), path("rds/ps_rel.rds"), emit: ps_rds
-    tuple val(params.sample_id), path("json/full_microbiome_summary.json"), emit: json_out
+    tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
+    tuple val(sample_id), path("json/full_microbiome_summary.json"), emit: json_out
 
     script:
     """
-    echo "[INFO] Running preprocessing for ${params.sample_id}"
-    echo "File staged: ${input_file}"
-    mkdir -p results/rds results/json
+    echo "[INFO] Running preprocessing for ${sample_id}"
+    echo "[DEBUG] FASTQ files staged:"
+    ls -lh *.fastq.gz
 
-    SAMPLE_ID=\$(basename ${input_file} | sed 's/_R[12]_001\\.fastq\\.gz//')
-    echo "[DEBUG] Detected sample ID: \${SAMPLE_ID}"
+    mkdir -p results/rds results/json
 
     Rscript ${params.preprocess_r} \\
         --input . \\
         --output . \\
-        --sample_id \${SAMPLE_ID} \\
+        --sample_id ${sample_id} \\
         --taxonomy_train ${tax_train} \\
         --taxonomy_species ${tax_species} \\
         --threads 4
     """
 }
+
 
 
 
