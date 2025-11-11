@@ -1,9 +1,5 @@
 nextflow.enable.dsl=2
 
-process.container = 'rocker/tidyverse:4.3.1'
-process.executor = 'awsbatch'
-process.queue = 'your-aws-batch-queue-name'
-
 
 // ===============================
 // PARAMETERS
