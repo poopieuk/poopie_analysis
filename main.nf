@@ -179,15 +179,15 @@ PY
 workflow {
 
     // Channel for one sample ID
-    single_sample_ch = Channel.of(params.sample_id)
+    sample_id_ch = Channel.of(params.sample_id)
 
-    // Channel for all input files in S3
+    // Channel for input files (from S3 or local)
     input_files_ch = Channel.fromPath("${params.input_dir}/*", checkIfExists: true)
 
-    // Combine into tuples (sample_id, each input file)
+    // Create tuples (sample_id, file)
     preprocess_in = input_files_ch.map { file -> tuple(params.sample_id, file) }
 
-    // Pass to PREPROCESS process
+    // ✅ Pass combined channel to PREPROCESS
     preprocess_ch = PREPROCESS(preprocess_in)
 
     // Downstream steps
@@ -201,5 +201,6 @@ workflow {
 
     UPLOAD_SUPABASE(upload_input)
 }
+
 
 
