@@ -26,7 +26,7 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // ===============================
 
 process PREPROCESS {
-container 'rocker/tidyverse:4.3.1'
+
     tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
@@ -53,7 +53,7 @@ container 'rocker/tidyverse:4.3.1'
 }
 
 process SUMMARY {
-container 'rocker/tidyverse:4.3.1'
+
     tag "$sample_id"
     publishDir "${params.output_dir}/summary", mode: 'copy'
 
@@ -75,7 +75,7 @@ container 'rocker/tidyverse:4.3.1'
 }
 
 process BIOMARKERS {
-container 'rocker/tidyverse:4.3.1'
+
     tag "$sample_id"
     publishDir "${params.output_dir}/biomarkers", mode: 'copy'
 
