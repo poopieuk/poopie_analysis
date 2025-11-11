@@ -176,9 +176,9 @@ workflow {
     //preprocess_ch = PREPROCESS(input: preprocess_in)
 
     // Downstream processes
-    summary_ch    = SUMMARY(input: preprocess_ch.ps_rds)
-    biomarker_ch  = BIOMARKERS(input: preprocess_ch.ps_rds)
-    report_ch     = REPORT(input: preprocess_ch.json_out)
+    summary_ch    = SUMMARY(preprocess_ch.ps_rds)
+    biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
+    report_ch     = REPORT(preprocess_ch.json_out)
 
     upload_input = report_ch.report_pdfs
         .combine(report_ch.report_jsons)
