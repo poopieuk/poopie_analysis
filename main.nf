@@ -28,9 +28,10 @@ process PREPROCESS {
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
     input:
-    path input_file
+    tuple val(sample_id), path(reads)
     path tax_train
     path tax_species
+
 
     output:
     tuple val(params.sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -175,11 +176,20 @@ workflow {
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
     // Connect all three channels to PREPROCESS
-    preprocess_ch = PREPROCESS(
-        input_files_ch,
-        tax_train_ch,
-        tax_species_ch
-    )
+    // Group R1/R2 pairs by sample ID automatically
+paired_fastqs_ch = Channel
+    .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
+    .map { file ->
+        def sid = file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, '')
+        tuple(sid, file)
+    }
+    .groupTuple()
+
+paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
+
+// Send pairs + taxonomy DBs into PREPROCESS
+preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
+
 
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
