@@ -112,31 +112,31 @@ process REPORT {
     input:
     tuple val(sample_id), path(json_file)
 
-    
     output:
-tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
-tuple val(sample_id), path("results/*.json"), emit: report_jsons
-
+    // ✅ Match the actual files produced by poopie_report.py
+    tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
+    tuple val(sample_id), path("results/*.txt"), emit: report_txts
 
     script:
     """
-    mkdir -p results/pdf
+    mkdir -p results
     echo "[INFO] Generating timestamped report for ${sample_id}"
 
     python3 ${params.report_py} \\
         --kb ${params.kb_json} \\
         --input_json ${json_file} \\
         --sample ${sample_id} \\
-        --output results/pdf
+        --output results
     """
 }
+
 
 process UPLOAD_SUPABASE {
     tag "$sample_id"
     publishDir "${params.output_dir}/supabase_upload", mode: 'copy'
 
     input:
-    tuple val(sample_id), path(pdf), path(json)
+    tuple val(sample_id), path(pdf), path(txt)
 
     output:
     path "upload_done.txt", emit: upload_flag
@@ -157,7 +157,7 @@ url  = os.environ["SUPABASE_URL"]
 key  = os.environ["SUPABASE_KEY"]
 bucket = os.environ["SUPABASE_BUCKET"]
 supabase: Client = create_client(url, key)
-for f in ["${pdf}", "${json}"]:
+for f in ["${pdf}", "${txt}"]:
     dest_name = os.path.basename(f)
     with open(f, "rb") as file_data:
         supabase.storage.from_(bucket).upload(dest_name, file_data)
@@ -195,9 +195,11 @@ preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
 
+        // ✅ Combine report outputs correctly
     upload_input = report_ch.report_pdfs
-        .combine(report_ch.report_jsons)
-        .map { pdf, json -> tuple(params.sample_id, pdf, json) }
+        .combine(report_ch.report_txts)
+        .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
 
     UPLOAD_SUPABASE(upload_input)
+
 }
