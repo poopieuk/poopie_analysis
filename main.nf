@@ -28,6 +28,8 @@ process PREPROCESS {
 
     input:
     path input_file
+    path tax_train from Channel.fromPath(params.tax_train, checkIfExists: true)
+    path tax_species from Channel.fromPath(params.tax_species, checkIfExists: true)
 
     output:
     tuple val(params.sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -43,8 +45,8 @@ process PREPROCESS {
         --input ${input_file} \\
         --output . \\
         --sample_id ${params.sample_id} \\
-        --taxonomy_train ${params.tax_train} \\
-        --taxonomy_species ${params.tax_species} \\
+        --taxonomy_train ${tax_train} \\
+        --taxonomy_species ${tax_species} \\
         --threads 4
     """
 }
