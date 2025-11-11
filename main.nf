@@ -44,16 +44,11 @@ process PREPROCESS {
 
     mkdir -p results/rds results/json
 
-    R1=\$(ls *R1_001.fastq.gz | head -n1)
-    R2=\$(ls *R2_001.fastq.gz | head -n1)
-    echo "[DEBUG] Found FASTQ pair: \$R1 and \$R2"
-
-    CLEAN_ID=\$(basename \$R1 | sed 's/_R[12]_001\\.fastq\\.gz//')
+    CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
     echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
 
     Rscript ${params.preprocess_r} \\
-        --input_R1 \$R1 \\
-        --input_R2 \$R2 \\
+        --input . \\
         --output . \\
         --sample_id \${CLEAN_ID} \\
         --taxonomy_train ${tax_train} \\
@@ -61,6 +56,7 @@ process PREPROCESS {
         --threads 4
     """
 }
+
 
 
 
@@ -117,11 +113,9 @@ process REPORT {
     tuple val(sample_id), path(json_file)
 
     
-    
-output:
+    output:
 tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
-tuple val(sample_id), path("results/*.txt"), emit: report_txts
-
+tuple val(sample_id), path("results/*.json"), emit: report_jsons
 
 
     script:
@@ -177,7 +171,6 @@ PY
 // ===============================
 // WORKFLOW
 // ===============================
-
 workflow {
 
     // Define taxonomy databases
@@ -185,29 +178,26 @@ workflow {
     tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
 
     // Group R1 and R2 files by sample prefix
-    paired_fastqs_ch = Channel
-        .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
-        .map { file ->
-            def sid = file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, '')
-            tuple(sid, file)
-        }
-        .groupTuple()
+paired_fastqs_ch = Channel
+    .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
+    .map { file ->
+        def sid = file.name.replaceAll(/_R[12]_001\.fastq\.gz$/, '')
+        tuple(sid, file)
+    }
+    .groupTuple()
 
-    paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
+paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
-    // ✅ Correct process invocation
-    preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
+// Connect all 3 channels
+preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
 
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
 
-    // ✅ Combine report outputs correctly
-    upload_input_ch = report_ch.report_pdfs
-        .combine(report_ch.report_txts)
-        .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
+    upload_input = report_ch.report_pdfs
+        .combine(report_ch.report_jsons)
+        .map { pdf, json -> tuple(params.sample_id, pdf, json) }
 
-    UPLOAD_SUPABASE(upload_input_ch)
+    UPLOAD_SUPABASE(upload_input)
 }
-
-
