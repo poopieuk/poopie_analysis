@@ -130,7 +130,6 @@ process UPLOAD_SUPABASE {
     output:
     path "upload_done.txt", emit: upload_flag
 
-    // ✅ Environment variables must go here inside `process` config block
     environment = [
         'SUPABASE_URL': params.supabase_url,
         'SUPABASE_KEY': params.supabase_key,
@@ -140,7 +139,9 @@ process UPLOAD_SUPABASE {
     script:
     """
     echo "[INFO] Uploading files for ${sample_id} to Supabase..."
-    python3 - <<'PY'
+
+    # ✅ Remove the single quotes here so environment vars are visible
+    python3 - <<PY
 import os
 from supabase import create_client, Client
 
@@ -149,14 +150,18 @@ key  = os.environ["SUPABASE_KEY"]
 bucket = os.environ["SUPABASE_BUCKET"]
 
 supabase: Client = create_client(url, key)
+
 for f in ["${pdf}", "${json}"]:
     dest_name = os.path.basename(f)
-    supabase.storage.from_(bucket).upload(dest_name, open(f, "rb"))
+    with open(f, "rb") as file_data:
+        supabase.storage.from_(bucket).upload(dest_name, file_data)
 print("✅ Upload complete for ${sample_id}")
 PY
+
     echo "done" > upload_done.txt
     """
 }
+
 
 
 // ===============================
