@@ -184,6 +184,6 @@ workflow {
         .combine(report_ch.report_jsons)
         .map { pdf, json -> tuple(params.sample_id, pdf, json) }
 
-    UPLOAD_SUPABASE(input: upload_input)
+    UPLOAD_SUPABASE(upload_input)
 }
 
