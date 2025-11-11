@@ -16,9 +16,9 @@ params.kb_json      = "${projectDir}/poopie-pipeline/pp_report.json"
 params.sample_id    = "MS205-N715-A-S505-A_S92_L001"
 
 // Supabase upload configuration
-params.supabase_url     = "${SUPABASE_URL ?: 'https://tbyenonhykkizfdbcpnz.supabase.co'}"
-params.supabase_key     = "${SUPABASE_KEY ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'}"
-params.supabase_bucket  = "${SUPABASE_BUCKET ?: 'reports'}"
+params.supabase_url     = System.getenv('SUPABASE_URL') ?: 'https://tbyenonhykkizfdbcpnz.supabase.co'
+params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'
+params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 
 // ===============================
 // PROCESS DEFINITIONS
