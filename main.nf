@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 // ===============================
 // PARAMETERS
 // ===============================
-params.input_dir   = "s3://poopie-data/inputs"
+params.input_dir   = "s3://poopie-data/"
 params.output_dir  = "${projectDir}/results"
 params.tax_train   = "s3://poopie-data/silva_nr_v138_train_set.fa.gz"
 params.tax_species = "s3://poopie-data/silva_species_assignment_v138.fa.gz"
@@ -16,7 +16,7 @@ params.kb_json      = "${projectDir}/pp_report.json"
 params.sample_id    = "MS205-N715-A-S505-A_S92_L001"
 
 params.supabase_url     = System.getenv('SUPABASE_URL') ?: 'https://tbyenonhykkizfdbcpnz.supabase.co'
-params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'YOUR_SUPABASE_KEY'
+params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'
 params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 
 // ===============================
