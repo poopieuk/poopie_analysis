@@ -158,23 +158,15 @@ PY
 // WORKFLOW
 // ===============================
 workflow {
-    // Create a channel from S3 FASTQ files
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
 
-    // Create (sample_id, file) tuples for the PREPROCESS process
+    input_files_ch.view { "DEBUG: Found input file -> ${it}" }
+
     preprocess_in = input_files_ch.map { file -> tuple(params.sample_id, file) }
 
-    // ✅ Pass both sample_id and file to PREPROCESS
+    preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
+
     preprocess_ch = PREPROCESS(preprocess_in)
-
-    // Continue downstream
-    summary_ch    = SUMMARY(preprocess_ch.ps_rds)
-    biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
-    report_ch     = REPORT(preprocess_ch.json_out)
-
-    upload_input = report_ch.report_pdfs
-        .combine(report_ch.report_jsons)
-        .map { pdf, json -> tuple(params.sample_id, pdf, json) }
-
-    UPLOAD_SUPABASE(upload_input)
+    ...
 }
+
