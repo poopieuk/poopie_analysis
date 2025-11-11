@@ -169,18 +169,14 @@ workflow {
 
     // Detect FASTQ files from input directory
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
-    preprocess_ch = PREPROCESS(input_files_ch)
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
-    // Create tuples of (sample_id, file)
-    //preprocess_in = input_files_ch.map { file ->
-    //    tuple(params.sample_id, file)
-    //}
-
-    //preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
-
-    // ✅ Explicit DSL2 input mapping
-    //preprocess_ch = PREPROCESS(input: preprocess_in)
+    // Run PREPROCESS with 3 inputs
+    preprocess_ch = PREPROCESS(
+        input_files_ch,
+        tax_train_ch,
+        tax_species_ch
+    )
 
     // Downstream processes
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
@@ -193,4 +189,5 @@ workflow {
 
     UPLOAD_SUPABASE(upload_input)
 }
+
 
