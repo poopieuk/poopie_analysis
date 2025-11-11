@@ -170,7 +170,7 @@ workflow {
     //    tuple(params.sample_id, file)
     //}
 
-    preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
+    //preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
 
     // ✅ Explicit DSL2 input mapping
     //preprocess_ch = PREPROCESS(input: preprocess_in)
