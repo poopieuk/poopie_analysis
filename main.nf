@@ -26,12 +26,12 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // ===============================
 
 process PREPROCESS {
-
     tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
     input:
     val(sample_id)
+    path input_files from Channel.fromPath("${params.input_dir}/*", checkIfExists: true)
 
     output:
     tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -40,12 +40,13 @@ process PREPROCESS {
     script:
     """
     echo "[INFO] Running preprocessing for ${sample_id}"
-    echo "DEBUG: Checking existence: ${params.preprocess_r}"
-    ls -l ${params.preprocess_r} || echo "File not found!"
+    echo "Files downloaded locally:"
+    ls -lh ${input_files}
+
     mkdir -p results/rds results/json
 
     Rscript ${params.preprocess_r} \\
-        --input ${params.input_dir} \\
+        --input . \\
         --output . \\
         --sample_id ${sample_id} \\
         --taxonomy_train ${params.tax_train} \\
@@ -53,6 +54,7 @@ process PREPROCESS {
         --threads 4
     """
 }
+
 
 process SUMMARY {
 
