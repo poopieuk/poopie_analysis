@@ -31,7 +31,7 @@ process PREPROCESS {
 
     input:
     val(sample_id)
-    path input_files from Channel.fromPath("${params.input_dir}/*", checkIfExists: true)
+    path input_files
 
     output:
     tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -40,7 +40,7 @@ process PREPROCESS {
     script:
     """
     echo "[INFO] Running preprocessing for ${sample_id}"
-    echo "Files downloaded locally:"
+    echo "Files staged locally:"
     ls -lh ${input_files}
 
     mkdir -p results/rds results/json
@@ -54,6 +54,7 @@ process PREPROCESS {
         --threads 4
     """
 }
+
 
 
 process SUMMARY {
@@ -176,9 +177,10 @@ PY
 // WORKFLOW
 // ===============================
 workflow {
-    single_sample_ch = Channel.value(params.sample_id)
+    input_ch = Channel.fromPath("${params.input_dir}/*", checkIfExists: true)
+    single_sample_ch = Channel.of(params.sample_id)
 
-    preprocess_ch = PREPROCESS(single_sample_ch)
+    preprocess_ch = PREPROCESS(single_sample_ch.combine(input_ch))
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
