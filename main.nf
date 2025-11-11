@@ -158,17 +158,16 @@ PY
 // WORKFLOW
 // ===============================
 workflow {
-
-    // List input FASTQ files from S3
+    // Create a channel from S3 FASTQ files
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
 
-    // Create (sample_id, file) tuples
+    // Create (sample_id, file) tuples for the PREPROCESS process
     preprocess_in = input_files_ch.map { file -> tuple(params.sample_id, file) }
 
-    // ✅ Correct call
+    // ✅ Pass both sample_id and file to PREPROCESS
     preprocess_ch = PREPROCESS(preprocess_in)
 
-    // Downstream
+    // Continue downstream
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
