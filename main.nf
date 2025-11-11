@@ -42,15 +42,19 @@ process PREPROCESS {
     echo "File staged: ${input_file}"
     mkdir -p results/rds results/json
 
+    SAMPLE_ID=\$(basename ${input_file} | sed 's/_R[12]_001\\.fastq\\.gz//')
+    echo "[DEBUG] Detected sample ID: \${SAMPLE_ID}"
+
     Rscript ${params.preprocess_r} \\
-        --input --input ${params.input_dir} \\
+        --input . \\
         --output . \\
-        --sample_id ${params.sample_id} \\
+        --sample_id \${SAMPLE_ID} \\
         --taxonomy_train ${tax_train} \\
         --taxonomy_species ${tax_species} \\
         --threads 4
     """
 }
+
 
 
 process SUMMARY {
