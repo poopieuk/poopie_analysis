@@ -37,26 +37,24 @@ process PREPROCESS {
     tuple val(sample_id), path("json/full_microbiome_summary.json"), emit: json_out
 
     script:
-"""
-echo "[INFO] Running preprocessing for ${sample_id}"
-echo "[DEBUG] FASTQ files staged:"
-ls -lh *.fastq.gz
+    """
+    echo "[INFO] Running preprocessing for ${sample_id}"
+    echo "[DEBUG] FASTQ files staged:"
+    ls -lh *.fastq.gz
 
-mkdir -p results/rds results/json
+    mkdir -p results/rds results/json
 
-CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
-echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
+    CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
+    echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
 
-Rscript ${params.preprocess_r} \\
-    --input . \\
-    --output . \\
-    --sample_id \${CLEAN_ID} \\
-    --taxonomy_train ${tax_train} \\
-    --taxonomy_species ${tax_species} \\
-    --threads 4
-"""
-
-
+    Rscript ${params.preprocess_r} \\
+        --input . \\
+        --output . \\
+        --sample_id \${CLEAN_ID} \\
+        --taxonomy_train ${tax_train} \\
+        --taxonomy_species ${tax_species} \\
+        --threads 4
+    """
 }
 
 
@@ -177,19 +175,20 @@ workflow {
     tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
     tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
 
-    // Detect paired FASTQ files
-    paired_fastqs_ch = Channel
-        .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
-        .map { file ->
-            def sid = file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, '')
-            tuple(sid, file)
-        }
-        .groupTuple()
+    // Group R1 and R2 files by sample prefix
+paired_fastqs_ch = Channel
+    .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
+    .map { file ->
+        def sid = file.name.replaceAll(/_R[12]_001\.fastq\.gz$/, '')
+        tuple(sid, file)
+    }
+    .groupTuple()
 
-    paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
+paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
-    // Run processes
-    preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
+// Connect all 3 channels
+preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
+
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
