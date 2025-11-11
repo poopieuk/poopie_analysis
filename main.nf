@@ -201,6 +201,6 @@ preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
     .combine(report_ch.report_txts)
     .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
 
+upload_input | UPLOAD_SUPABASE
 
-    UPLOAD_SUPABASE(upload_input)
 }
