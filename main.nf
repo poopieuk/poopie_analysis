@@ -27,7 +27,6 @@ process PREPROCESS {
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
     input:
-    val(sample_id)
     path input_file
 
     output:
@@ -163,17 +162,18 @@ workflow {
 
     // Detect FASTQ files from input directory
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
+    preprocess_ch = PREPROCESS(input_files_ch)
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
     // Create tuples of (sample_id, file)
-    preprocess_in = input_files_ch.map { file ->
-        tuple(params.sample_id, file)
-    }
+    //preprocess_in = input_files_ch.map { file ->
+    //    tuple(params.sample_id, file)
+    //}
 
     preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
 
     // ✅ Explicit DSL2 input mapping
-    preprocess_ch = PREPROCESS(input: preprocess_in)
+    //preprocess_ch = PREPROCESS(input: preprocess_in)
 
     // Downstream processes
     summary_ch    = SUMMARY(input: preprocess_ch.ps_rds)
