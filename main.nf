@@ -18,6 +18,9 @@ params.sample_id    = "MS205-N715-A-S505-A_S92_L001"
 params.supabase_url     = System.getenv('SUPABASE_URL') ?: 'https://tbyenonhykkizfdbcpnz.supabase.co'
 params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'
 params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
+// Define input channels for taxonomy databases
+tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
+tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
 
 // ===============================
 // PROCESS DEFINITIONS
@@ -28,8 +31,9 @@ process PREPROCESS {
 
     input:
     path input_file
-    path tax_train from Channel.fromPath(params.tax_train, checkIfExists: true)
-    path tax_species from Channel.fromPath(params.tax_species, checkIfExists: true)
+    path tax_train from tax_train_ch
+    path tax_species from tax_species_ch
+
 
     output:
     tuple val(params.sample_id), path("rds/ps_rel.rds"), emit: ps_rds
