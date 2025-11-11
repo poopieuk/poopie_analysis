@@ -54,11 +54,25 @@ ps_rel <- prune_samples(sample_id, ps_rel)
 cat("📊 Generating genus-level abundance table...\n")
 genus_table <- tax_glom(ps_rel, taxrank = "Genus")
 genus_abundances <- as.data.frame(t(otu_table(genus_table)))
-
 taxa_info <- as.data.frame(tax_table(genus_table))
-colnames(genus_abundances) <- taxa_info[rownames(tax_table(genus_table)), "Genus"]
+
+# 🩹 Handle single-sample or 1D case safely
+if (is.null(dim(genus_abundances))) {
+  genus_abundances <- as.data.frame(t(genus_abundances))
+}
+
+genus_names <- taxa_info[rownames(tax_table(genus_table)), "Genus"]
+
+if (length(genus_names) == ncol(genus_abundances)) {
+  colnames(genus_abundances) <- genus_names
+} else {
+  warning("Column count mismatch between OTU table and tax table — assigning generic names")
+  colnames(genus_abundances) <- paste0("Genus_", seq_len(ncol(genus_abundances)))
+}
+
 colnames(genus_abundances)[is.na(colnames(genus_abundances))] <- "unclassified"
 colnames(genus_abundances) <- make.names(colnames(genus_abundances), unique = TRUE)
+
 
 genus_abundances$SampleID <- sample_id
 write.csv(genus_abundances, file.path(out_dir, paste0(sample_id, "_genus_abundance.csv")), row.names = FALSE)
