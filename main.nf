@@ -112,9 +112,11 @@ process REPORT {
     input:
     tuple val(sample_id), path(json_file)
 
+    
     output:
-    tuple val(sample_id), path("results/pdf/*.pdf"), emit: report_pdfs
-    tuple val(sample_id), path("results/pdf/*.json"), emit: report_jsons
+tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
+tuple val(sample_id), path("results/*.json"), emit: report_jsons
+
 
     script:
     """
