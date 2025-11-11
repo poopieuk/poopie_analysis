@@ -26,8 +26,8 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // ===============================
 
 process PREPROCESS {
-echo "DEBUG: Checking existence: ${params.preprocess_r}"
-ls -l ${params.preprocess_r} || echo "File not found!"
+    echo "DEBUG: Checking existence: ${params.preprocess_r}"
+    ls -l ${params.preprocess_r} || echo "File not found!"
 
     tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
