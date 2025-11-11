@@ -23,31 +23,32 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // PROCESS DEFINITIONS
 // ===============================
 process PREPROCESS {
-    tag "$sample_id"
+    tag "${params.sample_id}"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
     input:
     path input_file
 
     output:
-    tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
-    tuple val(sample_id), path("json/full_microbiome_summary.json"), emit: json_out
+    tuple val(params.sample_id), path("rds/ps_rel.rds"), emit: ps_rds
+    tuple val(params.sample_id), path("json/full_microbiome_summary.json"), emit: json_out
 
     script:
     """
-    echo "[INFO] Running preprocessing for ${sample_id}"
+    echo "[INFO] Running preprocessing for ${params.sample_id}"
     echo "File staged: ${input_file}"
     mkdir -p results/rds results/json
 
     Rscript ${params.preprocess_r} \\
         --input ${input_file} \\
         --output . \\
-        --sample_id ${sample_id} \\
+        --sample_id ${params.sample_id} \\
         --taxonomy_train ${params.tax_train} \\
         --taxonomy_species ${params.tax_species} \\
         --threads 4
     """
 }
+
 
 
 process SUMMARY {
