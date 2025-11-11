@@ -8,11 +8,11 @@ params.input_dir   = "s3://poopie-data/"          // Input FASTQs from S3
 params.output_dir  = "${projectDir}/results"
 params.tax_train   = "s3://poopie-data/silva_nr_v138_train_set.fa.gz"
 params.tax_species = "s3://poopie-data/silva_species_assignment_v138.fa.gz"
-params.preprocess_r = "${projectDir}/poopie-pipeline/poopie_pipeline.R"
-params.summary_r    = "${projectDir}/poopie-pipeline/generate_summary_single.R"
-params.biomarker_r  = "${projectDir}/poopie-pipeline/biomarker_single.R"
-params.report_py    = "${projectDir}/poopie-pipeline/poopie_report.py"
-params.kb_json      = "${projectDir}/poopie-pipeline/pp_report.json"
+params.preprocess_r = "${projectDir}/poopie_pipeline.R"
+params.summary_r    = "${projectDir}/generate_summary_single.R"
+params.biomarker_r  = "${projectDir}/biomarker_single.R"
+params.report_py    = "${projectDir}/poopie_report.py"
+params.kb_json      = "${projectDir}/pp_report.json"
 
 params.sample_id    = "MS205-N715-A-S505-A_S92_L001"
 
