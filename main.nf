@@ -50,6 +50,7 @@ process PREPROCESS {
     """
 }
 
+
 process SUMMARY {
     tag "$sample_id"
     publishDir "${params.output_dir}/summary", mode: 'copy'
