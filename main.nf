@@ -113,7 +113,6 @@ process REPORT {
     tuple val(sample_id), path(json_file)
 
     output:
-    // ✅ Match the actual files produced by poopie_report.py
     tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
     tuple val(sample_id), path("results/*.txt"), emit: report_txts
 
@@ -126,9 +125,10 @@ process REPORT {
         --kb ${params.kb_json} \\
         --input_json ${json_file} \\
         --sample ${sample_id} \\
-        --output results
+        --output results/${sample_id}.pdf
     """
 }
+
 
 
 process UPLOAD_SUPABASE {
