@@ -29,7 +29,7 @@ process PREPROCESS {
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
     input:
-    tuple val(sample_id), path(dummy)
+    val(sample_id)
 
     output:
     tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -168,7 +168,7 @@ PY
 // WORKFLOW
 // ===============================
 workflow {
-    single_sample_ch = Channel.of(tuple(params.sample_id, file('dummy.txt')))
+    single_sample_ch = Channel.of(params.sample_id)
 
     preprocess_ch = PREPROCESS(single_sample_ch)
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
