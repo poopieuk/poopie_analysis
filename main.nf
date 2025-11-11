@@ -29,9 +29,8 @@ process PREPROCESS {
 
     input:
     path input_file
-    path tax_train from tax_train_ch
-    path tax_species from tax_species_ch
-
+    path tax_train
+    path tax_species
 
     output:
     tuple val(params.sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -52,7 +51,6 @@ process PREPROCESS {
         --threads 4
     """
 }
-
 
 
 process SUMMARY {
@@ -165,15 +163,14 @@ PY
 // ===============================
 workflow {
 
-    // Define channels inside workflow
+    // Define channels here
     tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
     tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
 
-    // Detect FASTQ files
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
-    // Run PREPROCESS with all three inputs
+    // Connect all three channels to PREPROCESS
     preprocess_ch = PREPROCESS(
         input_files_ch,
         tax_train_ch,
@@ -190,6 +187,7 @@ workflow {
 
     UPLOAD_SUPABASE(upload_input)
 }
+
 
 
 
