@@ -113,9 +113,11 @@ process REPORT {
     tuple val(sample_id), path(json_file)
 
     
-    output:
+    
+output:
 tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
-tuple val(sample_id), path("results/*.json"), emit: report_jsons
+tuple val(sample_id), path("results/*.txt"), emit: report_txts
+
 
 
     script:
@@ -196,8 +198,9 @@ preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
     report_ch     = REPORT(preprocess_ch.json_out)
 
     upload_input = report_ch.report_pdfs
-        .combine(report_ch.report_jsons)
-        .map { pdf, json -> tuple(params.sample_id, pdf, json) }
+    .combine(report_ch.report_txts)
+    .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
+
 
     UPLOAD_SUPABASE(upload_input)
 }
