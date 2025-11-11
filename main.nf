@@ -173,6 +173,7 @@ PY
 // ===============================
 // WORKFLOW
 // ===============================
+
 workflow {
 
     // Define taxonomy databases
@@ -183,25 +184,26 @@ workflow {
     paired_fastqs_ch = Channel
         .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
         .map { file ->
-            def sid = file.name.replaceAll(/_R[12]_001\.fastq\.gz$/, '')
+            def sid = file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, '')
             tuple(sid, file)
         }
         .groupTuple()
 
     paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
-    // ✅ Proper DSL2 process invocation
-    (paired_fastqs_ch, tax_train_ch, tax_species_ch) | PREPROCESS
+    // ✅ Correct process invocation
+    preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
 
-    summary_ch    = SUMMARY(PREPROCESS.out.ps_rds)
-    biomarker_ch  = BIOMARKERS(PREPROCESS.out.ps_rds)
-    report_ch     = REPORT(PREPROCESS.out.json_out)
+    summary_ch    = SUMMARY(preprocess_ch.ps_rds)
+    biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
+    report_ch     = REPORT(preprocess_ch.json_out)
 
     // ✅ Combine report outputs correctly
     upload_input_ch = report_ch.report_pdfs
         .combine(report_ch.report_txts)
         .map { pdf, txt -> tuple(params.sample_id, pdf, txt) }
 
-    upload_input_ch | UPLOAD_SUPABASE
+    UPLOAD_SUPABASE(upload_input_ch)
 }
+
 
