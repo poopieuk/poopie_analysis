@@ -44,11 +44,16 @@ process PREPROCESS {
 
     mkdir -p results/rds results/json
 
-    CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
+    R1=\$(ls *R1_001.fastq.gz | head -n1)
+    R2=\$(ls *R2_001.fastq.gz | head -n1)
+    echo "[DEBUG] Found FASTQ pair: \$R1 and \$R2"
+
+    CLEAN_ID=\$(basename \$R1 | sed 's/_R[12]_001\\.fastq\\.gz//')
     echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
 
     Rscript ${params.preprocess_r} \\
-        --input . \\
+        --input_R1 \$R1 \\
+        --input_R2 \$R2 \\
         --output . \\
         --sample_id \${CLEAN_ID} \\
         --taxonomy_train ${tax_train} \\
@@ -56,7 +61,6 @@ process PREPROCESS {
         --threads 4
     """
 }
-
 
 
 
