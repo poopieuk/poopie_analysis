@@ -158,30 +158,23 @@ PY
 // ===============================
 // WORKFLOW
 // ===============================
-// ===============================
-// WORKFLOW
-// ===============================
-// ===============================
-// WORKFLOW
-// ===============================
 workflow {
 
     // Detect FASTQ files from your input directory
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
-    // Build tuples of (sample_id, path)
+    // Build tuples of (sample_id, file)
     preprocess_in = input_files_ch.map { file ->
-        def sid = params.sample_id
-        tuple(sid, file)
+        tuple(params.sample_id, file)
     }
 
     preprocess_in.view { "DEBUG: Tuple going into PREPROCESS -> ${it}" }
 
-    // ✅ Correct DSL2 syntax for process invocation
-    preprocess_ch = PREPROCESS(input: preprocess_in)
+    // ✅ Correct way to call PREPROCESS with two inputs
+    preprocess_ch = PREPROCESS(preprocess_in)
 
-
+    // Continue downstream
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
