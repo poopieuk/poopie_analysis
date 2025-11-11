@@ -1,5 +1,10 @@
 nextflow.enable.dsl=2
 
+process.container = 'rocker/tidyverse:4.3.1'
+process.executor = 'awsbatch'
+process.queue = 'your-aws-batch-queue-name'
+
+
 // ===============================
 // PARAMETERS
 // ===============================
@@ -25,6 +30,7 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // ===============================
 
 process PREPROCESS {
+container 'rocker/tidyverse:4.3.1'
     tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
 
@@ -51,6 +57,7 @@ process PREPROCESS {
 }
 
 process SUMMARY {
+container 'rocker/tidyverse:4.3.1'
     tag "$sample_id"
     publishDir "${params.output_dir}/summary", mode: 'copy'
 
@@ -72,6 +79,7 @@ process SUMMARY {
 }
 
 process BIOMARKERS {
+container 'rocker/tidyverse:4.3.1'
     tag "$sample_id"
     publishDir "${params.output_dir}/biomarkers", mode: 'copy'
 
