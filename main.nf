@@ -18,9 +18,7 @@ params.sample_id    = "MS205-N715-A-S505-A_S92_L001"
 params.supabase_url     = System.getenv('SUPABASE_URL') ?: 'https://tbyenonhykkizfdbcpnz.supabase.co'
 params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'
 params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
-// Define input channels for taxonomy databases
-tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
-tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
+
 
 // ===============================
 // PROCESS DEFINITIONS
@@ -167,18 +165,21 @@ PY
 // ===============================
 workflow {
 
-    // Detect FASTQ files from input directory
+    // Define channels inside workflow
+    tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
+    tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
+
+    // Detect FASTQ files
     input_files_ch = Channel.fromPath("${params.input_dir}/*.fastq.gz", checkIfExists: true)
     input_files_ch.view { "DEBUG: Found input file -> ${it}" }
 
-    // Run PREPROCESS with 3 inputs
+    // Run PREPROCESS with all three inputs
     preprocess_ch = PREPROCESS(
         input_files_ch,
         tax_train_ch,
         tax_species_ch
     )
 
-    // Downstream processes
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
@@ -189,5 +190,6 @@ workflow {
 
     UPLOAD_SUPABASE(upload_input)
 }
+
 
 
