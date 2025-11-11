@@ -37,25 +37,25 @@ process PREPROCESS {
     tuple val(sample_id), path("json/full_microbiome_summary.json"), emit: json_out
 
     script:
-    """
-    echo "[INFO] Running preprocessing for ${sample_id}"
-    echo "[DEBUG] FASTQ files staged:"
-    ls -lh *.fastq.gz
+"""
+echo "[INFO] Running preprocessing for ${sample_id}"
+echo "[DEBUG] FASTQ files staged:"
+ls -lh *.fastq.gz
 
-    mkdir -p results/rds results/json
+mkdir -p results/rds results/json
 
-    # Derive clean sample ID (strip R1/R2 and extensions)
-CLEAN_ID=$(basename $(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\.fastq\.gz//')
+CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
+echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
 
-echo "[DEBUG] Clean sample ID -> ${CLEAN_ID}"
-
-Rscript ${params.preprocess_r} \
-    --input . \
-    --output . \
-    --sample_id ${CLEAN_ID} \
-    --taxonomy_train ${tax_train} \
-    --taxonomy_species ${tax_species} \
+Rscript ${params.preprocess_r} \\
+    --input . \\
+    --output . \\
+    --sample_id \${CLEAN_ID} \\
+    --taxonomy_train ${tax_train} \\
+    --taxonomy_species ${tax_species} \\
     --threads 4
+"""
+
 
 }
 
