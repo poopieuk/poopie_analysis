@@ -177,10 +177,20 @@ PY
 // WORKFLOW
 // ===============================
 workflow {
-    input_ch = Channel.fromPath("${params.input_dir}/*", checkIfExists: true)
+
+    // Channel for sample ID
     single_sample_ch = Channel.of(params.sample_id)
 
-    preprocess_ch = PREPROCESS(single_sample_ch.combine(input_ch))
+    // Channel for input files (download from S3 or local)
+    input_files_ch = Channel.fromPath("${params.input_dir}/*", checkIfExists: true)
+
+    // Combine both so each process gets (sample_id, input_files)
+    preprocess_in = single_sample_ch.combine(input_files_ch)
+
+    // Pass both arguments into PREPROCESS
+    preprocess_ch = PREPROCESS(preprocess_in)
+
+    // Downstream steps
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
@@ -191,3 +201,4 @@ workflow {
 
     UPLOAD_SUPABASE(upload_input)
 }
+
