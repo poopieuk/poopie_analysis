@@ -157,14 +157,13 @@ process UPLOAD_SUPABASE {
 import os
 import mimetypes
 from supabase import create_client, Client
-from urllib.parse import quote
+from storage3.exceptions import StorageApiError
 
-url = os.environ["SUPABASE_URL"]
-key = os.environ["SUPABASE_KEY"]
-bucket = os.environ["SUPABASE_BUCKET"]
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+bucket = os.environ.get("SUPABASE_BUCKET")
 
 supabase: Client = create_client(url, key)
-
 files = ["${pdf}", "${txt}"]
 
 for f in files:
@@ -174,33 +173,33 @@ for f in files:
 
     dest_name = os.path.basename(f)
     mime_type, _ = mimetypes.guess_type(f)
-
-    if dest_name.endswith(".txt"):
-        new_dest_name = dest_name.replace(".txt", ".json")
-        mime_type = "application/json"
-        print(f"📄 Renaming {dest_name} → {new_dest_name} for upload.")
-        dest_name = new_dest_name
-
     if not mime_type:
         mime_type = "application/octet-stream"
 
     print(f"⬆️  Uploading {dest_name} with MIME type {mime_type} ...")
-    with open(f, "rb") as file_data:
-        supabase.storage.from_(bucket).upload(
-            dest_name, file_data, file_options={"content-type": mime_type}
-        )
+    try:
+        with open(f, "rb") as file_data:
+            supabase.storage.from_(bucket).upload(
+                dest_name, file_data, file_options={"content-type": mime_type}
+            )
+        print(f"✅ Uploaded {dest_name} successfully!")
+    except StorageApiError as e:
+        if "mime type" in str(e).lower():
+            print(f"⚠️  Retrying {dest_name} with generic MIME type (application/octet-stream)...")
+            with open(f, "rb") as file_data:
+                supabase.storage.from_(bucket).upload(
+                    dest_name, file_data, file_options={"content-type": "application/octet-stream"}
+                )
+            print(f"✅ Uploaded {dest_name} successfully as binary.")
+        else:
+            raise
 
-    public_url = f"{url}/storage/v1/object/public/{bucket}/{quote(dest_name)}"
-    print(f"✅ Uploaded {dest_name} successfully!")
-    print(f"🔗 Public URL: {public_url}")
-
-print("🎉 Upload complete for:", "${sample_id}")
+print("🎉 All files uploaded successfully to Supabase bucket:", bucket)
 PY
 
     echo "done" > upload_done.txt
     """
 }
-
 
 // ===============================
 // WORKFLOW
