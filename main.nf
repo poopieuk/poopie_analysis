@@ -33,7 +33,7 @@ process PREPROCESS {
     tuple val(sample_id), path(reads)
     path tax_train
     path tax_species
-    path preprocess_r from file(params.preprocess_r)
+    path preprocess_r
 
     output:
     tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -67,7 +67,7 @@ process SUMMARY {
 
     input:
     tuple val(sample_id), path(ps_rds)
-    path summary_r from file(params.summary_r)
+    path summary_r
 
     output:
     tuple val(sample_id), path("results/reports/*.csv"), emit: genus_csv
@@ -89,7 +89,7 @@ process BIOMARKERS {
 
     input:
     tuple val(sample_id), path(ps_rds)
-    path biomarker_r from file(params.biomarker_r)
+    path biomarker_r
 
     output:
     tuple val(sample_id), path("results/biomarkers_csv/*.csv"), emit: biomarker_csv
@@ -115,8 +115,8 @@ process REPORT {
 
     input:
     tuple val(sample_id), path(json_file)
-    path report_py from file(params.report_py)
-    path kb_json   from file(params.kb_json)
+    path report_py
+    path kb_json
 
     output:
     tuple val(sample_id), path("**/*.pdf"), emit: report_pdfs
@@ -166,7 +166,7 @@ for f in files:
         print(f"⚠️ Skipping missing file: {f}"); continue
     dest=os.path.basename(f)
     mime=mimetypes.guess_type(f)[0] or "application/octet-stream"
-    print(f"⬆️ Uploading {dest} ({mime})")
+    print(f"⬆️ Uploading {dest} (${mime})")
     try:
         with open(f,"rb") as fd:
             supabase.storage.from_(bucket).upload(dest, fd, file_options={"content-type": mime})
@@ -184,11 +184,17 @@ PY
 // ===============================
 workflow {
 
-    // taxonomy databases
-    tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
-    tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
+    // --- static reference files as channels ---
+    preprocess_r_ch = Channel.fromPath(params.preprocess_r, checkIfExists: true)
+    summary_r_ch    = Channel.fromPath(params.summary_r, checkIfExists: true)
+    biomarker_r_ch  = Channel.fromPath(params.biomarker_r, checkIfExists: true)
+    report_py_ch    = Channel.fromPath(params.report_py, checkIfExists: true)
+    kb_json_ch      = Channel.fromPath(params.kb_json, checkIfExists: true)
 
-    // group paired FASTQs
+    tax_train_ch    = Channel.fromPath(params.tax_train, checkIfExists: true)
+    tax_species_ch  = Channel.fromPath(params.tax_species, checkIfExists: true)
+
+    // --- group paired FASTQs ---
     paired_fastqs_ch = Channel
         .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
         .map { file -> tuple(file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, ''), file) }
@@ -196,16 +202,18 @@ workflow {
 
     paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
-    preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
-    summary_ch    = SUMMARY(preprocess_ch.ps_rds)
-    biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
-    report_ch     = REPORT(preprocess_ch.json_out)
+    // --- run the workflow chain ---
+    preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch, preprocess_r_ch)
+    summary_ch    = SUMMARY(preprocess_ch.ps_rds, summary_r_ch)
+    biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds, biomarker_r_ch)
+    report_ch     = REPORT(preprocess_ch.json_out, report_py_ch, kb_json_ch)
 
-    // combine report outputs for upload
+    // --- combine PDF and TXT outputs for upload ---
     upload_input_ch = report_ch.report_pdfs
         .combine(report_ch.report_txts)
         .map { sample_id, pdf, txt -> tuple(sample_id, pdf, txt) }
 
     upload_input_ch.view { "DEBUG Upload tuple -> ${it}" }
+
     upload_input_ch | UPLOAD_SUPABASE
 }
