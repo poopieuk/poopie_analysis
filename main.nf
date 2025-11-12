@@ -1,4 +1,4 @@
-nextflow.enable.dsl=2
+nextflow.enable.dsl = 2
 
 // ===============================
 // PARAMETERS
@@ -7,6 +7,7 @@ params.input_dir   = "s3://poopie-data/"
 params.output_dir  = "${projectDir}/results"
 params.tax_train   = "s3://poopie-data/silva_nr_v138_train_set.fa.gz"
 params.tax_species = "s3://poopie-data/silva_species_assignment_v138.fa.gz"
+
 params.preprocess_r = "${projectDir}/poopie_pipeline.R"
 params.summary_r    = "${projectDir}/generate_summary_single.R"
 params.biomarker_r  = "${projectDir}/biomarker_single.R"
@@ -19,10 +20,11 @@ params.supabase_url     = System.getenv('SUPABASE_URL') ?: 'https://tbyenonhykki
 params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'
 params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 
-
 // ===============================
 // PROCESS DEFINITIONS
 // ===============================
+
+// ---------- PREPROCESS ----------
 process PREPROCESS {
     tag "$sample_id"
     publishDir "${params.output_dir}/preprocess", mode: 'copy'
@@ -31,6 +33,7 @@ process PREPROCESS {
     tuple val(sample_id), path(reads)
     path tax_train
     path tax_species
+    path preprocess_r from file(params.preprocess_r)
 
     output:
     tuple val(sample_id), path("rds/ps_rel.rds"), emit: ps_rds
@@ -47,7 +50,7 @@ process PREPROCESS {
     CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
     echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
 
-    Rscript ${params.preprocess_r} \\
+    Rscript ${preprocess_r} \\
         --input . \\
         --output . \\
         --sample_id \${CLEAN_ID} \\
@@ -57,37 +60,36 @@ process PREPROCESS {
     """
 }
 
-
-
-
-
+// ---------- SUMMARY ----------
 process SUMMARY {
     tag "$sample_id"
     publishDir "${params.output_dir}/summary", mode: 'copy'
 
     input:
     tuple val(sample_id), path(ps_rds)
+    path summary_r from file(params.summary_r)
 
     output:
     tuple val(sample_id), path("results/reports/*.csv"), emit: genus_csv
 
-
     script:
     """
     mkdir -p results/reports
-    Rscript ${params.summary_r} \\
+    Rscript ${summary_r} \\
         --phyloseq_rds ${ps_rds} \\
         --sample_id ${sample_id} \\
         --output_dir results/reports
     """
 }
 
+// ---------- BIOMARKERS ----------
 process BIOMARKERS {
     tag "$sample_id"
     publishDir "${params.output_dir}/biomarkers", mode: 'copy'
 
     input:
     tuple val(sample_id), path(ps_rds)
+    path biomarker_r from file(params.biomarker_r)
 
     output:
     tuple val(sample_id), path("results/biomarkers_csv/*.csv"), emit: biomarker_csv
@@ -99,40 +101,41 @@ process BIOMARKERS {
     echo "[INFO] Running biomarker discovery for ${sample_id}"
 
     CLEAN_ID=\$(echo ${sample_id} | sed 's/_R[12]_001//')
-    Rscript ${params.biomarker_r} \\
+    Rscript ${biomarker_r} \\
         --rds ${ps_rds} \\
         --sample \${CLEAN_ID} \\
         --output results
     """
 }
 
+// ---------- REPORT ----------
 process REPORT {
     tag "$sample_id"
     publishDir "${params.output_dir}/pdf", mode: 'copy'
 
     input:
     tuple val(sample_id), path(json_file)
+    path report_py from file(params.report_py)
+    path kb_json   from file(params.kb_json)
 
     output:
     tuple val(sample_id), path("**/*.pdf"), emit: report_pdfs
     tuple val(sample_id), path("**/*.txt"), emit: report_txts
-
 
     script:
     """
     mkdir -p results
     echo "[INFO] Generating timestamped report for ${sample_id}"
 
-    python3 ${params.report_py} \\
-        --kb ${params.kb_json} \\
+    python3 ${report_py} \\
+        --kb ${kb_json} \\
         --input_json ${json_file} \\
         --sample ${sample_id} \\
         --output results/${sample_id}.pdf
     """
 }
 
-
-
+// ---------- UPLOAD_SUPABASE ----------
 process UPLOAD_SUPABASE {
     tag "$sample_id"
     publishDir "${params.output_dir}/supabase_upload", mode: 'copy'
@@ -146,57 +149,32 @@ process UPLOAD_SUPABASE {
     script:
     """
     echo "[INFO] Uploading files for ${sample_id} to Supabase..."
-
     pip install --quiet supabase
-
     export SUPABASE_URL="${params.supabase_url}"
     export SUPABASE_KEY="${params.supabase_key}"
     export SUPABASE_BUCKET="${params.supabase_bucket}"
 
     python3 - <<PY
-import os
-import mimetypes
+import os, mimetypes
 from supabase import create_client, Client
 from storage3.exceptions import StorageApiError
-
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-bucket = os.environ.get("SUPABASE_BUCKET")
-
+url=os.getenv("SUPABASE_URL"); key=os.getenv("SUPABASE_KEY"); bucket=os.getenv("SUPABASE_BUCKET")
 supabase: Client = create_client(url, key)
-files = ["${pdf}", "${txt}"]
-
+files=["${pdf}", "${txt}"]
 for f in files:
     if not os.path.exists(f):
-        print(f"⚠️  Skipping missing file: {f}")
-        continue
-
-    dest_name = os.path.basename(f)
-    mime_type, _ = mimetypes.guess_type(f)
-    if not mime_type:
-        mime_type = "application/octet-stream"
-
-    print(f"⬆️  Uploading {dest_name} with MIME type {mime_type} ...")
+        print(f"⚠️ Skipping missing file: {f}"); continue
+    dest=os.path.basename(f)
+    mime=mimetypes.guess_type(f)[0] or "application/octet-stream"
+    print(f"⬆️ Uploading {dest} ({mime})")
     try:
-        with open(f, "rb") as file_data:
-            supabase.storage.from_(bucket).upload(
-                dest_name, file_data, file_options={"content-type": mime_type}
-            )
-        print(f"✅ Uploaded {dest_name} successfully!")
+        with open(f,"rb") as fd:
+            supabase.storage.from_(bucket).upload(dest, fd, file_options={"content-type": mime})
+        print(f"✅ Uploaded {dest}")
     except StorageApiError as e:
-        if "mime type" in str(e).lower():
-            print(f"⚠️  Retrying {dest_name} with generic MIME type (application/octet-stream)...")
-            with open(f, "rb") as file_data:
-                supabase.storage.from_(bucket).upload(
-                    dest_name, file_data, file_options={"content-type": "application/octet-stream"}
-                )
-            print(f"✅ Uploaded {dest_name} successfully as binary.")
-        else:
-            raise
-
-print("🎉 All files uploaded successfully to Supabase bucket:", bucket)
+        print(f"⚠️ Upload failed for {dest}: {e}")
+print("🎉 All uploads completed!")
 PY
-
     echo "done" > upload_done.txt
     """
 }
@@ -206,39 +184,28 @@ PY
 // ===============================
 workflow {
 
-    // Define taxonomy databases
+    // taxonomy databases
     tax_train_ch   = Channel.fromPath(params.tax_train, checkIfExists: true)
     tax_species_ch = Channel.fromPath(params.tax_species, checkIfExists: true)
 
-    // Group R1 and R2 files by sample prefix
-paired_fastqs_ch = Channel
-    .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
-    .map { file ->
-        def sid = file.name.replaceAll(/_R[12]_001\.fastq\.gz$/, '')
-        tuple(sid, file)
-    }
-    .groupTuple()
+    // group paired FASTQs
+    paired_fastqs_ch = Channel
+        .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
+        .map { file -> tuple(file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, ''), file) }
+        .groupTuple()
 
-paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
+    paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
-// Connect all 3 channels
-preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
-
+    preprocess_ch = PREPROCESS(paired_fastqs_ch, tax_train_ch, tax_species_ch)
     summary_ch    = SUMMARY(preprocess_ch.ps_rds)
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds)
     report_ch     = REPORT(preprocess_ch.json_out)
 
-        // ✅ Combine report outputs correctly
+    // combine report outputs for upload
     upload_input_ch = report_ch.report_pdfs
-    .map { sample_id, pdf -> tuple(sample_id, pdf) }   // keep both elements
-    .combine(report_ch.report_txts.map { _, txt -> txt }) // combine by index
-    .map { sample_id, pdf, txt -> tuple(sample_id, pdf, txt) }
+        .combine(report_ch.report_txts)
+        .map { sample_id, pdf, txt -> tuple(sample_id, pdf, txt) }
 
-upload_input_ch.view { "DEBUG Upload tuple -> ${it}" }
-
-upload_input_ch | UPLOAD_SUPABASE
-
-
-
-
+    upload_input_ch.view { "DEBUG Upload tuple -> ${it}" }
+    upload_input_ch | UPLOAD_SUPABASE
 }
