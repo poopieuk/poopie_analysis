@@ -49,7 +49,7 @@ process PREPROCESS {
 
     CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
     echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
-
+Rscript -e "install.packages('optparse', repos='https://cloud.r-project.org')"
     Rscript ${preprocess_r} \\
         --input . \\
         --output . \\
@@ -58,6 +58,7 @@ process PREPROCESS {
         --taxonomy_species ${tax_species} \\
         --threads 4
     """
+
 }
 
 // ---------- SUMMARY ----------
