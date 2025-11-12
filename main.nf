@@ -140,32 +140,42 @@ process UPLOAD_SUPABASE {
     input:
     tuple val(sample_id), path(pdf), path(txt)
 
-
     output:
     path "upload_done.txt", emit: upload_flag
-
-    environment = [
-        'SUPABASE_URL': params.supabase_url,
-        'SUPABASE_KEY': params.supabase_key,
-        'SUPABASE_BUCKET': params.supabase_bucket
-    ]
 
     script:
     """
     echo "[INFO] Uploading files for ${sample_id} to Supabase..."
+
+    # Ensure Supabase client is installed
+    pip install --quiet supabase
+
+    # Export env vars for the Python block
+    export SUPABASE_URL="${params.supabase_url}"
+    export SUPABASE_KEY="${params.supabase_key}"
+    export SUPABASE_BUCKET="${params.supabase_bucket}"
+
     python3 - <<PY
 import os
 from supabase import create_client, Client
-url  = os.environ["SUPABASE_URL"]
-key  = os.environ["SUPABASE_KEY"]
-bucket = os.environ["SUPABASE_BUCKET"]
+
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+bucket = os.environ.get("SUPABASE_BUCKET")
+
+if not url or not key or not bucket:
+    raise RuntimeError("Missing one or more Supabase environment variables")
+
 supabase: Client = create_client(url, key)
+
 for f in ["${pdf}", "${txt}"]:
     dest_name = os.path.basename(f)
     with open(f, "rb") as file_data:
         supabase.storage.from_(bucket).upload(dest_name, file_data)
-print("✅ Upload complete for ${sample_id}")
+
+print(f"✅ Upload complete for {os.path.basename('${pdf}')} and {os.path.basename('${txt}')}")
 PY
+
     echo "done" > upload_done.txt
     """
 }
