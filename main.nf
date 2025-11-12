@@ -155,33 +155,44 @@ process UPLOAD_SUPABASE {
 
     python3 - <<PY
 import os
-from supabase import create_client, Client
 import mimetypes
+from supabase import create_client, Client
+from storage3.exceptions import StorageApiError
 
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 bucket = os.environ.get("SUPABASE_BUCKET")
 
 supabase: Client = create_client(url, key)
-
 files = ["${pdf}", "${txt}"]
 
 for f in files:
     if not os.path.exists(f):
         print(f"⚠️  Skipping missing file: {f}")
         continue
+
     dest_name = os.path.basename(f)
     mime_type, _ = mimetypes.guess_type(f)
     if not mime_type:
         mime_type = "application/octet-stream"
 
     print(f"⬆️  Uploading {dest_name} with MIME type {mime_type} ...")
-    with open(f, "rb") as file_data:
-        supabase.storage.from_(bucket).upload(
-            dest_name, file_data, file_options={"content-type": mime_type}
-        )
-
-    print(f"✅ Uploaded {dest_name} successfully!")
+    try:
+        with open(f, "rb") as file_data:
+            supabase.storage.from_(bucket).upload(
+                dest_name, file_data, file_options={"content-type": mime_type}
+            )
+        print(f"✅ Uploaded {dest_name} successfully!")
+    except StorageApiError as e:
+        if "mime type" in str(e).lower():
+            print(f"⚠️  Retrying {dest_name} with generic MIME type (application/octet-stream)...")
+            with open(f, "rb") as file_data:
+                supabase.storage.from_(bucket).upload(
+                    dest_name, file_data, file_options={"content-type": "application/octet-stream"}
+                )
+            print(f"✅ Uploaded {dest_name} successfully as binary.")
+        else:
+            raise
 
 print("🎉 All files uploaded successfully to Supabase bucket:", bucket)
 PY
