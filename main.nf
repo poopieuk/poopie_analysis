@@ -147,10 +147,8 @@ process UPLOAD_SUPABASE {
     """
     echo "[INFO] Uploading files for ${sample_id} to Supabase..."
 
-    # Ensure Supabase client is installed
     pip install --quiet supabase
 
-    # Export env vars for the Python block
     export SUPABASE_URL="${params.supabase_url}"
     export SUPABASE_KEY="${params.supabase_key}"
     export SUPABASE_BUCKET="${params.supabase_bucket}"
@@ -158,28 +156,39 @@ process UPLOAD_SUPABASE {
     python3 - <<PY
 import os
 from supabase import create_client, Client
+import mimetypes
 
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 bucket = os.environ.get("SUPABASE_BUCKET")
 
-if not url or not key or not bucket:
-    raise RuntimeError("Missing one or more Supabase environment variables")
-
 supabase: Client = create_client(url, key)
 
-for f in ["${pdf}", "${txt}"]:
-    dest_name = os.path.basename(f)
-    with open(f, "rb") as file_data:
-        supabase.storage.from_(bucket).upload(dest_name, file_data)
+files = ["${pdf}", "${txt}"]
 
-print(f"✅ Upload complete for {os.path.basename('${pdf}')} and {os.path.basename('${txt}')}")
+for f in files:
+    if not os.path.exists(f):
+        print(f"⚠️  Skipping missing file: {f}")
+        continue
+    dest_name = os.path.basename(f)
+    mime_type, _ = mimetypes.guess_type(f)
+    if not mime_type:
+        mime_type = "application/octet-stream"
+
+    print(f"⬆️  Uploading {dest_name} with MIME type {mime_type} ...")
+    with open(f, "rb") as file_data:
+        supabase.storage.from_(bucket).upload(
+            dest_name, file_data, file_options={"content-type": mime_type}
+        )
+
+    print(f"✅ Uploaded {dest_name} successfully!")
+
+print("🎉 All files uploaded successfully to Supabase bucket:", bucket)
 PY
 
     echo "done" > upload_done.txt
     """
 }
-
 
 // ===============================
 // WORKFLOW
