@@ -69,7 +69,8 @@ process SUMMARY {
     tuple val(sample_id), path(ps_rds)
 
     output:
-    tuple val(sample_id), path("results/reports/genus_abundance.csv"), emit: genus_csv
+    tuple val(sample_id), path("results/reports/*.csv"), emit: genus_csv
+
 
     script:
     """
