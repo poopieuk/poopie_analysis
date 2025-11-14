@@ -96,7 +96,7 @@ if (!is.null(opt$sample_id)) {
   }
   
   # Restrict sample names as well
-  baseF <- sub("_R1_001\\.fastq(\\.gz)?$", "", basename(fnFs))
+  baseF <- sub("_R1\\.fastq(\\.gz)?$", "", basename(fnFs))
   #sample.names <- gsub("_S\\d+_L\\d+", "", baseF)
   sample.names <- baseF
   
@@ -105,7 +105,7 @@ if (!is.null(opt$sample_id)) {
 
 
 if (length(fnFs) == 0 || length(fnRs) == 0)
-  fail("No FASTQ pairs found matching *_R1_001.fastq.gz and *_R2_001.fastq.gz")
+  fail("No FASTQ pairs found matching *_R1.fastq.gz and *_R2.fastq.gz")
 
 if (length(fnFs) != length(fnRs))
   info("WARNING: forward/reverse file counts differ; attempting to proceed by name matching.")
@@ -121,9 +121,9 @@ if (length(fnFs) == 0)
   fail("No matching forward/reverse pairs after name harmonization.")
 
 # Derive clean sample names directly from FASTQ filenames
-sample.names <- gsub("_R[12]_001\\.fastq(\\.gz)?$", "", basename(fnFs))
+sample.names <- gsub("_R[12]\\.fastq(\\.gz)?$", "", basename(fnFs))
 #sample.names <- gsub("_S\\d+_L\\d+", "", sample.names)  # remove S##/L##
-sample.names <- gsub("_001$", "", sample.names)
+sample.names <- gsub("_R[12]$", "", sample.names)
 sample.names <- basename(sample.names)
 
 info("Detected sample names: ", paste(sample.names, collapse = ", "))
@@ -290,7 +290,7 @@ alpha_div$Sample <- rownames(alpha_div)
 
 # Normalize sample IDs in alpha_div
 alpha_div$Sample <- gsub("\\.fastq.*$", "", alpha_div$Sample)
-alpha_div$Sample <- gsub("_R[12]_001$", "", alpha_div$Sample)
+alpha_div$Sample <- gsub("_R[12]$", "", alpha_div$Sample)
 #alpha_div$Sample <- gsub("_S\\d+_L\\d+", "", alpha_div$Sample)
 write.csv(alpha_div, file.path(tables_dir, "alpha_diversity.csv"), row.names = FALSE)
 
@@ -303,7 +303,7 @@ genus_df <- phyloseq::psmelt(ps_genus) %>%
 
 # Normalize Sample IDs
 genus_df$Sample <- gsub("\\.fastq.*$", "", genus_df$Sample)
-genus_df$Sample <- gsub("_R[12]_001$", "", genus_df$Sample)
+genus_df$Sample <- gsub("_R[12]$", "", genus_df$Sample)
 #genus_df$Sample <- gsub("_S\\d+_L\\d+", "", genus_df$Sample)
 
 # Replace missing taxonomy with "Unclassified_*"
@@ -339,7 +339,7 @@ info("Writing combined JSON artifact…")
 
 # Normalize sample names for JSON
 genus_topN$Sample <- gsub("\\.fastq.*$", "", genus_topN$Sample)
-genus_topN$Sample <- gsub("_R[12]_001$", "", genus_topN$Sample)
+genus_topN$Sample <- gsub("_R[12]$", "", genus_topN$Sample)
 #genus_topN$Sample <- gsub("_S\\d+_L\\d+", "", genus_topN$Sample)
 #genus_topN$Sample <- gsub("_L\\d+$", "", genus_topN$Sample)
 
@@ -366,7 +366,7 @@ combined_json <- list(
 final_json_path <- file.path(json_dir, "full_microbiome_summary.json")
 # Normalize Sample names in JSON export
 genus_topN$Sample <- gsub("\\.fastq.*$", "", genus_topN$Sample)
-genus_topN$Sample <- gsub("_R[12]_001$", "", genus_topN$Sample)
+genus_topN$Sample <- gsub("_R[12]$", "", genus_topN$Sample)
 #genus_topN$Sample <- gsub("_S\\d+_L\\d+", "", genus_topN$Sample)
 #genus_topN$Sample <- gsub("_L\\d+$", "", genus_topN$Sample)
 jsonlite::write_json(combined_json, final_json_path, pretty = TRUE, auto_unbox = TRUE)
