@@ -166,13 +166,13 @@ from supabase import create_client, Client
 from storage3.exceptions import StorageApiError
 url=os.getenv("SUPABASE_URL"); key=os.getenv("SUPABASE_KEY"); bucket=os.getenv("SUPABASE_BUCKET")
 supabase: Client = create_client(url, key)
-files=["${pdf}", "${txt}"]
+files = [r"${pdf}", r"${txt}"]
 for f in files:
     if not os.path.exists(f):
         print(f"⚠️ Skipping missing file: {f}"); continue
     dest=os.path.basename(f)
     mime=mimetypes.guess_type(f)[0] or "application/octet-stream"
-    print(f"⬆️ Uploading {dest} (${mime})")
+    print(f"⬆️ Uploading {dest} ({mime})")
     try:
         with open(f,"rb") as fd:
             supabase.storage.from_(bucket).upload(dest, fd, file_options={"content-type": mime})
