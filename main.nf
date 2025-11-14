@@ -120,21 +120,26 @@ process REPORT {
     path kb_json
 
     output:
-    tuple val(sample_id), path("**/*.pdf"), emit: report_pdfs
-    tuple val(sample_id), path("**/*.txt"), emit: report_txts
+    tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
+    tuple val(sample_id), path("results/*.txt"), emit: report_txts
 
     script:
     """
     mkdir -p results
+
     echo "[INFO] Generating timestamped report for ${sample_id}"
 
-    python3 ${report_py} \\
-        --kb ${kb_json} \\
-        --input_json ${json_file} \\
-        --sample ${sample_id} \\
+    python3 ${report_py} \
+        --kb ${kb_json} \
+        --input_json ${json_file} \
+        --sample ${sample_id} \
         --output results/${sample_id}.pdf
+
+    # Required for join()
+    echo "Summary for ${sample_id}" > results/${sample_id}.txt
     """
 }
+
 
 // ---------- UPLOAD_SUPABASE ----------
 process UPLOAD_SUPABASE {
@@ -196,10 +201,10 @@ workflow {
     tax_species_ch  = Channel.fromPath(params.tax_species, checkIfExists: true)
 
     // --- group paired FASTQs ---
-    paired_fastqs_ch = Channel
-        .fromPath("${params.input_dir}/*_{R1,R2}_001.fastq.gz", checkIfExists: true)
-        .map { file -> tuple(file.name.replaceAll(/_R[12]_001\\.fastq\\.gz$/, ''), file) }
-        .groupTuple()
+    paired_fastqs_ch = Channel.fromFilePairs(
+    "${params.input_dir}/*_R{1,2}_001.fastq.gz"
+    )
+
 
     paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
@@ -211,8 +216,11 @@ workflow {
 
     // --- combine PDF and TXT outputs for upload ---
     upload_input_ch = report_ch.report_pdfs
-        .combine(report_ch.report_txts)
-        .map { sample_id, pdf, txt -> tuple(sample_id, pdf, txt) }
+    .join(report_ch.report_txts)
+    .map { sample_id, pdf, txt ->
+        tuple(sample_id, pdf, txt)
+    }
+
 
     upload_input_ch.view { "DEBUG Upload tuple -> ${it}" }
 
