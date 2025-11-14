@@ -215,15 +215,7 @@ workflow {
     biomarker_ch  = BIOMARKERS(preprocess_ch.ps_rds, biomarker_r_ch)
     report_ch     = REPORT(preprocess_ch.json_out, report_py_ch, kb_json_ch)
 
-    // --- combine PDF and TXT outputs for upload ---
-    upload_input_ch = report_ch.report_pdfs
-    .join(report_ch.report_txts)
-    .map { pdf_tuple, txt_tuple -> 
-        def sample = pdf_tuple[0]
-        def pdf    = pdf_tuple[1]
-        def txt    = txt_tuple[1]
-        tuple(sample, pdf, txt)
-    }
+    // --- combine PDF and TXT outputs for upload --- upload_input_ch = report_ch.report_pdfs .join(report_ch.report_txts) .map { sample_id, pdf, txt -> [sample_id, pdf, txt] }
 
 
     upload_input_ch.view { "DEBUG Upload tuple -> ${it}" }
