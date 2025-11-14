@@ -47,7 +47,7 @@ process PREPROCESS {
 
     mkdir -p results/rds results/json
 
-    CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]_001\\.fastq\\.gz//')
+    CLEAN_ID=\$(basename \$(ls *.fastq.gz | head -n1) | sed 's/_R[12]\\.fastq\\.gz//')
     echo "[DEBUG] Clean sample ID -> \${CLEAN_ID}"
 Rscript -e "install.packages('optparse', repos='https://cloud.r-project.org')"
     Rscript ${preprocess_r} \\
