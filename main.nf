@@ -3,7 +3,7 @@ nextflow.enable.dsl = 2
 // ===============================
 // PARAMETERS
 // ===============================
-params.input_dir   = "s3://poopie-data/"
+params.input_dir   = "s3://poopie-data"
 params.output_dir  = "${projectDir}/results"
 params.tax_train   = "s3://poopie-data/silva_nr_v138_train_set.fa.gz"
 params.tax_species = "s3://poopie-data/silva_species_assignment_v138.fa.gz"
