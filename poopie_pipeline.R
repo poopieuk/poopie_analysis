@@ -114,8 +114,9 @@ sample_id <- basename(in_dir)
 info("Detected sample folder:", sample_id)
 
 # Ensure pairs by basename prefix (up to _R1/_R2)
-baseF <- sub("_R1\\.fastq(\\.gz)?$", "", basename(fnFs))
-baseR <- sub("_R2\\.fastq(\\.gz)?$", "", basename(fnRs))
+baseF <- sub("_R1(_[0-9]+)?\\.f(ast)?q(\\.gz)?$", "", basename(fnFs))
+baseR <- sub("_R2(_[0-9]+)?\\.f(ast)?q(\\.gz)?$", "", basename(fnRs))
+
 common <- intersect(baseF, baseR)
 fnFs <- fnFs[baseF %in% common]
 fnRs <- fnRs[baseR %in% common]
