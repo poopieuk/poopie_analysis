@@ -207,8 +207,12 @@ workflow {
 
     // 🔍 Automatically find R1/R2 FASTQs inside subfolders
 paired_fastqs_ch = Channel
-    .fromPath("${params.input_dir}/*_{R1,R2}.fastq.gz", checkIfExists: true)
-    
+    .fromFilePairs("${params.input_dir}/**/*_{R1,R2}.fastq.gz", flat: true, checkIfExists: true)
+    .map {sample_id, reads ->
+        tuple(sample_id, reads)
+    }
+
+paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
 
 
     paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
