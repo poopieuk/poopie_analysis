@@ -121,7 +121,8 @@ process REPORT {
 
     output:
     tuple val(sample_id), path("results/*.pdf"), emit: report_pdfs
-    tuple val(sample_id), path("results/*.txt"), emit: report_txts
+    tuple val(sample_id), path("results/*_${sample_id}.txt"), emit: report_txts
+
 
     script:
     """
@@ -217,8 +218,11 @@ workflow {
     // --- combine PDF and TXT outputs for upload ---
     upload_input_ch = report_ch.report_pdfs
     .join(report_ch.report_txts)
-    .map { sample_id, pdf, txt ->
-        [sample_id, pdf, txt]
+    .map { pdf_tuple, txt_tuple -> 
+        def sample = pdf_tuple[0]
+        def pdf    = pdf_tuple[1]
+        def txt    = txt_tuple[1]
+        tuple(sample, pdf, txt)
     }
 
 
