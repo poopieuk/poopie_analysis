@@ -27,7 +27,7 @@ params.supabase_bucket  = System.getenv('SUPABASE_BUCKET') ?: 'reports'
 // ---------- PREPROCESS ----------
 process PREPROCESS {
     tag "$sample_id"
-    publishDir "${params.output_dir}/preprocess", mode: 'copy'
+    publishDir "${params.output_dir}/preprocess/${sample_id}", mode: 'copy'
 
     input:
     tuple val(sample_id), path(reads)
@@ -205,6 +205,11 @@ workflow {
     paired_fastqs_ch = Channel.fromFilePairs(
     "${params.input_dir}/*_R{1,2}_001.fastq.gz"
     )
+
+    // 🔍 Automatically find R1/R2 FASTQs inside subfolders
+paired_fastqs_ch = Channel
+    .fromPath("${params.input_dir}/*_{R1,R2}.fastq.gz", checkIfExists: true)
+    
 
 
     paired_fastqs_ch.view { "DEBUG: Paired FASTQs -> ${it}" }
