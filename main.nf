@@ -101,7 +101,7 @@ process BIOMARKERS {
     mkdir -p results/biomarkers_csv results/biomarkers_plots
     echo "[INFO] Running biomarker discovery for ${sample_id}"
 
-    CLEAN_ID=\$(echo ${sample_id} | sed 's/_R[12]_001//')
+    CLEAN_ID=\$(echo ${sample_id} | sed 's/_R[12]//')
     Rscript ${biomarker_r} \\
         --rds ${ps_rds} \\
         --sample \${CLEAN_ID} \\
