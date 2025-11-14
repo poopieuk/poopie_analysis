@@ -14,7 +14,7 @@ params.biomarker_r  = "${projectDir}/biomarker_single.R"
 params.report_py    = "${projectDir}/poopie_report.py"
 params.kb_json      = "${projectDir}/pp_report.json"
 
-params.sample_id    = "MS205-N715-A-S505-A_S92_L001"
+
 
 params.supabase_url     = System.getenv('SUPABASE_URL') ?: 'https://tbyenonhykkizfdbcpnz.supabase.co'
 params.supabase_key     = System.getenv('SUPABASE_KEY') ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWVub25oeWtraXpmZGJjcG56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0MjY5ODEsImV4cCI6MjA3MzAwMjk4MX0.XbS2XgZTYDjoa6SrY4QrwMBVXxW315lYG2AKe4sheOU'
@@ -53,7 +53,6 @@ Rscript -e "install.packages('optparse', repos='https://cloud.r-project.org')"
     Rscript ${preprocess_r} \\
         --input . \\
         --output . \\
-        --sample_id \${CLEAN_ID} \\
         --taxonomy_train ${tax_train} \\
         --taxonomy_species ${tax_species} \\
         --threads 4
