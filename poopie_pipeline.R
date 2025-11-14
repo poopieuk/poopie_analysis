@@ -79,8 +79,9 @@ species_fp <- normalizePath(opt$taxonomy_species, mustWork = TRUE)
 path <- in_dir
 
 # Automatically detect all R1/R2 pairs
-fnFs <- sort(list.files(path, pattern = "_R1_001\\.fastq(\\.gz)?$", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern = "_R2_001\\.fastq(\\.gz)?$", full.names = TRUE))
+
+fnFs <- sort(list.files(in_dir, pattern="_R1\\.fastq(\\.gz)?$", full.names=TRUE))
+fnRs <- sort(list.files(in_dir, pattern="_R2\\.fastq(\\.gz)?$", full.names=TRUE))
 
 # -------- Optional: Restrict to one sample if --sample_id provided --------
 if (!is.null(opt$sample_id)) {
