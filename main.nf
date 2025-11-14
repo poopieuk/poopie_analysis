@@ -218,7 +218,7 @@ workflow {
     upload_input_ch = report_ch.report_pdfs
     .join(report_ch.report_txts)
     .map { sample_id, pdf, txt ->
-        tuple(sample_id, pdf, txt)
+        [sample_id, pdf, txt]
     }
 
 
