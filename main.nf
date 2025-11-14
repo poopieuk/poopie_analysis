@@ -160,7 +160,7 @@ process UPLOAD_SUPABASE {
     export SUPABASE_KEY="${params.supabase_key}"
     export SUPABASE_BUCKET="${params.supabase_bucket}"
 
-    python3 - <<PY
+    python3 - << 'PY'
 import os, mimetypes
 from supabase import create_client, Client
 from storage3.exceptions import StorageApiError
