@@ -196,10 +196,22 @@ if (!all(nonzero)) {
 
 if (length(sample.names) == 0) fail("No samples left after filtering.")
 
-# -------- Learn errors --------
-info("Learning error models…")
-errF <- dada2::learnErrors(filtFs, multithread = opt$threads, nbases = 1e6)
-errR <- dada2::learnErrors(filtRs, multithread = opt$threads, nbases = 1e6)
+# -------- Learn errors (subsampled, robust) --------
+info("Learning error models on a small subset…")
+
+# pick ONE representative pair (the one with most reads that survived filtering)
+reads_after <- sapply(filtFs, function(f) R.utils::countLines(f)/4)
+train_sample <- names(which.max(reads_after))
+trainF <- filtFs[train_sample]
+trainR <- filtRs[train_sample]
+
+info("Training error model with sample: ", train_sample)
+
+# DADA2 tip: limit nbases and randomize to avoid first-chunk bias
+nb <- 1e6  # ~1 million bases is ample; adjust to 5e6 if needed
+errF <- dada2::learnErrors(trainF, multithread = opt$threads, nbases = nb, randomize = TRUE)
+errR <- dada2::learnErrors(trainR, multithread = opt$threads, nbases = nb, randomize = TRUE)
+
 saveRDS(errF, file.path(rds_dir, "errF.rds"))
 saveRDS(errR, file.path(rds_dir, "errR.rds"))
 
