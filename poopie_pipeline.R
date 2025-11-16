@@ -197,6 +197,7 @@ if (!all(nonzero)) {
 if (length(sample.names) == 0) fail("No samples left after filtering.")
 
 # -------- Learn errors (safe, streaming, subsampled) --------
+# -------- Learn errors (safe, streaming, subsampled) --------
 info("Learning error models on a small subset…")
 
 # Pick the sample with the most reads
@@ -211,16 +212,15 @@ set.seed(123)
 
 info("Subsampling reads (streaming, no full load)...")
 
-# Open compressed FASTQ files as text streams
-conF <- gzfile(trainF, "rt")
-conR <- gzfile(trainR, "rt")
+# Use FastqStreamer to read only the first chunk of reads
+streamF <- ShortRead::FastqStreamer(trainF, n = 300000)
+streamR <- ShortRead::FastqStreamer(trainR, n = 300000)
 
-# Read only the first ~300k reads (FAST and memory-safe)
-fqF_chunk <- ShortRead::readFastq(conF, n = 300000)
-fqR_chunk <- ShortRead::readFastq(conR, n = 300000)
+fqF_chunk <- ShortRead::yield(streamF)
+fqR_chunk <- ShortRead::yield(streamR)
 
-close(conF)
-close(conR)
+close(streamF)
+close(streamR)
 
 if (length(fqF_chunk) == 0 || length(fqR_chunk) == 0) {
   fail("Subsampled FASTQ chunk is empty — cannot learn errors.")
@@ -234,11 +234,11 @@ fqF_sub <- fqF_chunk[idx]
 fqR_sub <- fqR_chunk[idx]
 
 # Write temp FASTQs
-subF <- tempfile(pattern="subF_", fileext=".fastq.gz")
-subR <- tempfile(pattern="subR_", fileext=".fastq.gz")
+subF <- tempfile(pattern = "subF_", fileext = ".fastq.gz")
+subR <- tempfile(pattern = "subR_", fileext = ".fastq.gz")
 
-writeFastq(fqF_sub, subF, compress=TRUE)
-writeFastq(fqR_sub, subR, compress=TRUE)
+ShortRead::writeFastq(fqF_sub, subF, compress = TRUE)
+ShortRead::writeFastq(fqR_sub, subR, compress = TRUE)
 
 info("Created subsampled FASTQs: ", subF, " and ", subR)
 
@@ -248,6 +248,7 @@ errR <- dada2::learnErrors(subR, multithread = opt$threads, nbases = 1e6, random
 
 saveRDS(errF, file.path(rds_dir, "errF.rds"))
 saveRDS(errR, file.path(rds_dir, "errR.rds"))
+
                       
 # -------- Denoise & merge --------
 info("Denoising (dada) & merging pairs…")
