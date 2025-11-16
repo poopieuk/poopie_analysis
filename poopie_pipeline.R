@@ -196,10 +196,10 @@ if (!all(nonzero)) {
 
 if (length(sample.names) == 0) fail("No samples left after filtering.")
 
-# -------- Learn errors (subsampled, robust) --------
+# -------- Learn errors (safe, streaming, subsampled) --------
 info("Learning error models on a small subset…")
 
-# pick ONE representative pair (the one with most reads that survived filtering)
+# Pick the sample with the most reads
 reads_after <- sapply(filtFs, function(f) R.utils::countLines(f)/4)
 train_sample <- names(which.max(reads_after))
 trainF <- filtFs[train_sample]
@@ -209,19 +209,31 @@ info("Training error model with sample: ", train_sample)
 library(ShortRead)
 set.seed(123)
 
-info("Subsampling reads for error learning...")
+info("Subsampling reads (streaming, no full load)...")
 
-# Read only the first part of the file (compressed stream)
-fqF <- ShortRead::readFastq(trainF)
-fqR <- ShortRead::readFastq(trainR)
+# Open compressed FASTQ files as text streams
+conF <- gzfile(trainF, "rt")
+conR <- gzfile(trainR, "rt")
 
-# Pick 100k reads (plenty for error training)
-n_sub <- min(100000, length(fqF))
+# Read only the first ~300k reads (FAST and memory-safe)
+fqF_chunk <- ShortRead::readFastq(conF, n = 300000)
+fqR_chunk <- ShortRead::readFastq(conR, n = 300000)
 
-fqF_sub <- fqF[sample(length(fqF), n_sub)]
-fqR_sub <- fqR[sample(length(fqR), n_sub)]
+close(conF)
+close(conR)
 
-# Write to temporary small FASTQs
+if (length(fqF_chunk) == 0 || length(fqR_chunk) == 0) {
+  fail("Subsampled FASTQ chunk is empty — cannot learn errors.")
+}
+
+# Randomly downsample to 100k reads
+n_sub <- min(100000, length(fqF_chunk))
+idx <- sample(length(fqF_chunk), n_sub)
+
+fqF_sub <- fqF_chunk[idx]
+fqR_sub <- fqR_chunk[idx]
+
+# Write temp FASTQs
 subF <- tempfile(pattern="subF_", fileext=".fastq.gz")
 subR <- tempfile(pattern="subR_", fileext=".fastq.gz")
 
@@ -229,15 +241,14 @@ writeFastq(fqF_sub, subF, compress=TRUE)
 writeFastq(fqR_sub, subR, compress=TRUE)
 
 info("Created subsampled FASTQs: ", subF, " and ", subR)
+
+# Learn errors using ~1M bases
 errF <- dada2::learnErrors(subF, multithread = opt$threads, nbases = 1e6, randomize = TRUE)
 errR <- dada2::learnErrors(subR, multithread = opt$threads, nbases = 1e6, randomize = TRUE)
 
-# DADA2 tip: limit nbases and randomize to avoid first-chunk bias
-
-
 saveRDS(errF, file.path(rds_dir, "errF.rds"))
 saveRDS(errR, file.path(rds_dir, "errR.rds"))
-
+                      
 # -------- Denoise & merge --------
 info("Denoising (dada) & merging pairs…")
 dadaFs <- dada2::dada(filtFs, err = errF, multithread = opt$threads)
