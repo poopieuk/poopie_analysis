@@ -206,11 +206,34 @@ trainF <- filtFs[train_sample]
 trainR <- filtRs[train_sample]
 
 info("Training error model with sample: ", train_sample)
+library(ShortRead)
+set.seed(123)
+
+info("Subsampling reads for error learning...")
+
+# Read only the first part of the file (compressed stream)
+fqF <- ShortRead::readFastq(trainF)
+fqR <- ShortRead::readFastq(trainR)
+
+# Pick 100k reads (plenty for error training)
+n_sub <- min(100000, length(fqF))
+
+fqF_sub <- fqF[sample(length(fqF), n_sub)]
+fqR_sub <- fqR[sample(length(fqR), n_sub)]
+
+# Write to temporary small FASTQs
+subF <- tempfile(pattern="subF_", fileext=".fastq.gz")
+subR <- tempfile(pattern="subR_", fileext=".fastq.gz")
+
+writeFastq(fqF_sub, subF, compress=TRUE)
+writeFastq(fqR_sub, subR, compress=TRUE)
+
+info("Created subsampled FASTQs: ", subF, " and ", subR)
+errF <- dada2::learnErrors(subF, multithread = opt$threads, nbases = 1e6, randomize = TRUE)
+errR <- dada2::learnErrors(subR, multithread = opt$threads, nbases = 1e6, randomize = TRUE)
 
 # DADA2 tip: limit nbases and randomize to avoid first-chunk bias
-nb <- 1e6  # ~1 million bases is ample; adjust to 5e6 if needed
-errF <- dada2::learnErrors(trainF, multithread = opt$threads, nbases = nb, randomize = TRUE)
-errR <- dada2::learnErrors(trainR, multithread = opt$threads, nbases = nb, randomize = TRUE)
+
 
 saveRDS(errF, file.path(rds_dir, "errF.rds"))
 saveRDS(errR, file.path(rds_dir, "errR.rds"))
