@@ -55,7 +55,7 @@ Rscript -e "install.packages('optparse', repos='https://cloud.r-project.org')"
         --output . \\
         --taxonomy_train ${tax_train} \\
         --taxonomy_species ${tax_species} \\
-        --threads 4
+        --threads 8
     """
 
 }
