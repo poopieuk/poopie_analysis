@@ -1,0 +1,76 @@
+# Your Poopie Report — Dynamic Microbiome Report Generator (v8 full)
+
+This script generates a **personalised, narrative PDF microbiome report** (“Your Poopie Report”) from processed 16S data and a JSON knowledge base. It combines abundance/diversity metrics with a curated explanation library to create a client-friendly, wellness-oriented report.
+
+---
+
+## Features
+
+**PDF report**
+- Uses genus-level relative abundance + diversity indices
+- Pulls explanatory text from a **knowledge base JSON** and **sections JSON**
+- Dynamic 0–10 **scores** for:
+  - Diversity
+  - Probiotics / Prebiotics / Postbiotics
+  - Pathogens / Opportunists
+  - Mental wellness (gut–brain axis)
+  - Skin / gut–skin axis
+  - Overall gut balance (Good / Variable / Bad bugs)
+- Visuals:
+  - Clean pastel gauges
+  - Microbiome resilience radar plot
+  - Good/Bad/Variable pie chart
+  - Optional Top-10 genera bar chart (if `genus_abundance.csv` provided)
+
+
+## Inputs
+
+Required:
+
+- `--input_json`  
+  Clean microbiome summary JSON (e.g. `full_microbiome_summary_clean.json`).  
+  Expected keys: `abundance`, `diversity`, `metadata`, optionally `scores`.
+
+- `--kb`  
+  Knowledge base JSON (e.g. `pp_report.json`) with:
+  - `bacteria` (genus → overview/role/recommendations/abundance texts)
+  - optional `thresholds` (high/moderate cut-offs)
+
+- `--sections`  
+  Sections JSON with narrative text blocks for headings like *Prebiotics*, etc.
+
+- `--output`  
+  Output path (directory or file stub used to derive final PDF/TXT paths).
+
+Sample-selection options:
+
+- `--sample`  
+  Sample ID to generate a report for (optional).
+
+- `--all`  
+  Flag to generate for all samples (optional).
+
+Optional:
+
+- `--genus_csv`  
+  Path to `genus_abundance.csv` (samples × genera). If provided, this becomes
+  the primary source of genus-level abundance.
+
+---
+
+## Installation
+
+Requires Python 3 and the following packages:
+
+- `pandas`
+- `numpy`
+- `matplotlib`
+- `reportlab`
+- `fuzzywuzzy`
+- `python-Levenshtein` (recommended for fuzzywuzzy speed)
+- `json`, `argparse`, `re`, `math` (standard library)
+
+Example (pip):
+
+```bash
+pip install pandas numpy matplotlib reportlab fuzzywuzzy python-Levenshtein
