@@ -1,0 +1,55 @@
+**Pipeline Overview**
+
+**Input:**
+Paired-end FASTQ files (*_R1.fastq.gz, *_R2.fastq.gz) stored in S3.
+
+**Processing Steps:**
+
+1. PREPROCESS (R / DADA2)
+2. FASTQ detection and QC
+3. Filtering & trimming
+4. Subsampled learnErrors()
+5. Denoising, merging, chimera removal
+6. ASV table + taxonomy (SILVA)
+
+Outputs:
+
+- ps_rel.rds
+- full_microbiome_summary.json
+
+SUMMARY
+
+Generates per-sample genus abundance CSVs.
+
+BIOMARKERS
+
+Runs biomarker discovery & plots for each sample.
+
+REPORT
+
+1. Uses poopie_report.py + a knowledge base JSON to create a personalised PDF microbiome report.
+2. Also outputs a small TXT file for joining channels.
+
+UPLOAD_SUPABASE
+
+Uploads final PDFs (and TXT) directly to a Supabase bucket.
+
+Requirements
+
+1. Nextflow (DSL2)
+2. Docker or Singularity images for R + Python environment
+3. AWS Batch or local executor
+4. Supabase bucket + API key
+5. External reference files expected in S3:
+6. silva_nr_v138_train_set.fa.gz (taxonomy assignment)
+7. silva_species_assignment_v138.fa.gz (taxonomy species assignment)
+8. JSON knowledge base (pp_report.json)
+
+Running the Pipeline
+nextflow run main.nf \
+    --input_dir s3://bucket/raw-data/MYSAMPLE \
+    --output_dir results \
+    -profile batch
+
+
+The pipeline automatically detects all paired FASTQs inside input_dir.
