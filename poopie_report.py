@@ -102,7 +102,7 @@ if "thresholds" in kb_normalized:
 
 
 class CleanGauge(Flowable):
-    """Universal flat gauge for scores or abundance (Chuckling Goat–style)."""
+    """Universal flat gauge for scores or abundance."""
 
     def __init__(self, value, width=450, height=12, max_value=10.0, label=None, mode="score"):
         super().__init__()
@@ -1350,7 +1350,7 @@ If one or two species dominate, this number drops.<br/><br/>
     story.append(Paragraph("Gut Microbiome Diversity", styles["Section"]))
     story.append(divider())
     story.append(Paragraph(diversity_text, styles["Body"]))
-    # === NEW SECTION: Microbial Diversity Overview (Chuckling Goat–style) ===
+    # === NEW SECTION: Microbial Diversity Overview ===
     story.append(PageBreak())
     story.append(Paragraph("Microbial Diversity Overview", styles["Section"]))
     story.append(divider())
