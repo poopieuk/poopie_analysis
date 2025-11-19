@@ -1,0 +1,46 @@
+This script performs FASTQ detection, quality filtering, subsampled error learning, denoising, merging, chimera removal, taxonomy assignment (SILVA), diversity metrics, and summary table generation.
+
+Features
+
+- Automatic FASTQ pair detection (*_R1.fastq.gz, *_R2.fastq.gz)
+- Filtering & trimming via DADA2
+- Subsampled learnErrors() for speed and stability
+- Denoising, merging, chimera removal
+- ASV table + taxonomy (SILVA)
+- Phyloseq object generation
+- Alpha diversity
+- Genus-level relative abundance + Top-N table
+- JSON, CSV, and RDS outputs for downstream analysis
+
+Usage
+
+Rscript poopie_pipeline.R \
+  --input fastqs/ \
+  --output results/ \
+  --taxonomy_train silva_nr_v138_train_set.fa.gz \
+  --taxonomy_species silva_species_assignment_v138.fa.gz \
+  --threads 8
+
+  Optional:
+
+--sample_id SAMPLE123
+--trimLeftF 10 --trimLeftR 10
+--truncLenF 260 --truncLenR 260
+--min_abundance 10
+--top_genera 10
+
+Dependencies
+
+1. Requires R packages:
+2. dada2
+3. phyloseq
+4. optparse
+5. ShortRead
+6. dplyr, tidyr, jsonlite, R.utils
+
+Notes
+
+1. Error learning uses only ~100k reads for speed.
+2. Works with very large datasets (30M+ reads).
+3. SILVA database files must be provided.
+4. Suitable for use within a Nextflow workflow.
