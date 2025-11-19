@@ -1,9 +1,9 @@
-**Pipeline Overview**
+Pipeline Overview
 
-**Input:**
+Input:
 Paired-end FASTQ files (*_R1.fastq.gz, *_R2.fastq.gz) stored in S3.
 
-**Processing Steps:**
+Processing Steps:
 
 1. PREPROCESS (R / DADA2)
 2. FASTQ detection and QC
