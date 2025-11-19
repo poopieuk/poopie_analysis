@@ -1,1 +1,107 @@
+This script produces a high-level clinical-style summary for one microbiome sample using a relative-abundance Phyloseq object (ps_rel.rds).
+It is optimized for use inside a Nextflow workflow but can also be run manually.
 
+What It Produces
+
+For a single sample, the script generates:
+
+CSV Output
+
+Genus abundance table
+(<sample>_genus_abundance.csv)
+
+Microbiome summary scores
+(<sample>_microbiome_summary.csv)
+
+Plots
+
+Good vs. bad bug load
+(good_vs_bad_load.png)
+
+Gut score vs. Shannon diversity
+(gut_vs_diversity.png)
+
+What the Script Computes
+
+1. Genus-level abundance
+Genus-level relative abundances are extracted via:
+- tax_glom(ps_rel, "Genus")
+- Combined with taxonomy to produce a clean table
+
+2. Diversity
+- Shannon diversity (estimate_richness)
+
+3. Biomarker Categories
+
+Genera are categorized into:
+
+Good bugs
+e.g., Bifidobacterium, Faecalibacterium, Roseburia, Subdoligranulum, Lactobacillus
+
+Bad bugs
+e.g., Klebsiella, Escherichia, Staphylococcus, Bilophila, Clostridium
+
+Variable bugs
+e.g., Bacteroides, Prevotella, Blautia, Veillonella
+
+The script computes:
+
+Total abundance of each category
+
+Ratios between categories
+
+Summary Scores (0–10 scale)
+
+The script computes several interpretive scores:
+
+Score	           Meaning
+GutScore	       Combines good bugs, diversity, and bad bug suppression
+MentalScore	     Diversity + beneficial genera linked to neurotransmitter pathways
+SkinScore	       Good / bad ratio × diversity
+NutritionScore	 SCFA-producing genera × diversity
+PathobiontScore	 Inverse of harmful load
+
+Scaling uses scales::rescale() with safeguards for zeros.
+
+Usage
+
+Run the script as:
+
+Rscript generate_summary_single.R \
+    --phyloseq_rds ps_rel.rds \
+    --sample_id SAMPLE123 \
+    --output_dir results/reports
+
+Arguments
+Flag	Description
+--phyloseq_rds	Path to Phyloseq object (ps_rel.rds)
+--sample_id	Sample ID to summarize
+--output_dir	Output directory (default: results/reports)
+
+Output Structure
+results/reports/
+ ├── SAMPLEID_genus_abundance.csv
+ ├── SAMPLEID_microbiome_summary.csv
+ ├── good_vs_bad_load.png
+ └── gut_vs_diversity.png
+
+Dependencies
+
+R packages used:
+
+phyloseq
+vegan
+dplyr
+scales
+ggplot2
+optparse
+
+Install (if needed):
+
+install.packages(c("optparse", "dplyr", "ggplot2", "scales"))
+BiocManager::install(c("phyloseq", "vegan"))
+
+Purpose
+
+This script produces structured, interpretable metrics for your pipeline’s PDF report generator and Supabase upload step.
+It is intentionally lightweight, fast, and designed for automation.
