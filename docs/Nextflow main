@@ -53,3 +53,63 @@ nextflow run main.nf \
 
 
 The pipeline automatically detects all paired FASTQs inside input_dir.
+
+Output Structure
+
+results/
+ ├── preprocess/
+ ├── summary/
+ ├── biomarkers/
+ ├── pdf/
+ ├── supabase_upload/
+ └── logs/
+
+Configuration Parameters
+
+Defined in the script:
+
+Parameter	    Description
+
+input_dir	    Path to FASTQs in S3
+output_dir	    Local/S3 output path
+tax_train	    SILVA training set
+tax_species	    SILVA species mapping
+preprocess_r	DADA2 pipeline
+summary_r	    Summary generator
+biomarker_r	    Biomarker R script
+report_py	    Python PDF generator
+kb_json	        Knowledge base for report
+supabase_url, 
+supabase_key,   Upload credentials
+supabase_bucket	
+
+Override via:
+
+nextflow run main.nf --input_dir s3://... --output_dir ...
+
+Channels & Workflow Structure
+
+FASTQs grouped using Channel.fromFilePairs
+
+PREPROCESS → SUMMARY / BIOMARKERS / REPORT
+
+PDF + TXT are joined → passed to UPLOAD_SUPABASE
+
+Final PDF uploaded to Supabase
+
+AWS Batch Notes
+
+- Works with Tower/Seqera for cloud execution
+- Ensure compute environment has:
+- On-Demand or Fallback Spot
+- Custom Launch Template with large root volume
+- m6i/m5/x86 instance family
+
+How Supabase Upload Works
+
+The pipeline:
+
+1. Installs the supabase Python client
+2. Authenticates using environment vars
+3. Uploads the PDF + TXT to the bucket
+4. Writes a success flag upload_done.txt
