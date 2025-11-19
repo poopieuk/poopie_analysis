@@ -1,0 +1,81 @@
+This script identifies beneficial, harmful, and variable microbial genera from a single microbiome sample using a processed Phyloseq object (ps_rel.rds).
+Intended for use inside a Nextflow pipeline, but can be run standalone.
+
+Features
+
+1. Loads a relative-abundance Phyloseq object
+2. Extracts genus-level abundance for one sample
+3. Annotates taxa into 3 biomarker classes:
+
+- Good bugs (beneficial)
+- Bad bugs (opportunistic/pathogenic)
+- Variable bugs (context-dependent)
+
+Outputs:
+
+1. CSV file listing biomarkers + abundance + color category
+2. Barplot (PNG) visualizing biomarker abundances
+
+Requirements
+
+R packages:
+- optparse
+- phyloseq
+- dplyr
+- ggplot2
+
+Install (if needed while using as stand alone)
+
+install.packages(c("optparse", "dplyr", "ggplot2"))
+BiocManager::install("phyloseq")
+
+Usage
+Rscript biomarker_single.R \
+    --rds ps_rel.rds \
+    --sample SAMPLE_ID \
+    --output results
+
+Arguments
+Flag	Description
+--rds	Path to ps_rel.rds (relative abundance phyloseq object)
+--sample	Sample ID to analyze
+--output	Output directory (default: results)
+
+Output Files
+
+Under the chosen output directory:
+
+results/
+ ├── biomarkers_csv/
+ │     └── biomarkers_<sample>.csv
+ └── biomarkers_plots/
+       └── biomarkers_<sample>.png
+
+CSV Columns
+
+Genus
+
+Abundance (relative %)
+
+Color (green = good, red = bad, orange = variable)
+
+Biomarker Groups Used
+Good Bugs
+
+Bifidobacterium breve, Faecalibacterium prausnitzii, Roseburia, etc.
+
+Bad Bugs
+
+Klebsiella, Escherichia, Proteus, Fusobacterium, etc.
+
+Variable Bugs
+
+Bacteroides, Prevotella, Alistipes, etc.
+
+(Defined directly inside the script.)
+
+Notes
+
+1. Sample ID must exist in the Phyloseq object.
+2. Only genera detected in that sample will be reported.
+3. Intended as a simple, interpretable biomarker discovery module.
